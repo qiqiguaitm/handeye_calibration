@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.1] - 2025-01-22
+
+### Fixed
+- **Critical**: Robot mode/state reset after TCP offset setting
+  - Issue: Error code 9 ("not in correct mode") when moving robot after TCP offset
+  - Root cause: Setting TCP offset may change robot mode/state
+  - Solution: Re-apply position control mode (0) and sport state (0) after TCP offset
+- Robot readiness confirmation message added
+
+### Changed
+- Enhanced robot initialization sequence with state verification
+- Improved logging for robot status after TCP offset setting
+
+---
+
 ## [3.4.0] - 2025-01-22
 
 ### Added

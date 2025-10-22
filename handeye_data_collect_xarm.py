@@ -283,7 +283,7 @@ def save_calibration_metadata():
         'collection_mode': 'manual',
         'camera_id': camera_serial if camera_serial else 'unknown',
         'timestamp': timestamp,
-        'version': '3.4.0'  # 新增 TCP offset 支持
+        'version': '3.4.1'  # 修复 TCP offset 设置后的模式问题
     }
 
     metadata_file = os.path.join(data_path, "calibration_metadata.json")
@@ -612,7 +612,7 @@ def replay_trajectory(xarm, pipeline, trajectory_file, data_path):
 if __name__ == '__main__':
 
     print("="*60)
-    print("Hand-Eye Calibration Data Collector for xArm v3.4.0")
+    print("Hand-Eye Calibration Data Collector for xArm v3.4.1")
     print("="*60)
 
     # Load configuration first
