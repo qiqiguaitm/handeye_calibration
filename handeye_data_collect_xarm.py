@@ -701,6 +701,18 @@ if __name__ == '__main__':
         logger_.info("="*60)
         set_tcp_offset(xarm)
 
+        # Re-enable motion after TCP offset (setting TCP may change robot state)
+        logger_.info("\n重新确认机械臂状态...")
+        code = xarm.set_mode(0)  # Position control mode
+        if code != 0:
+            logger_.warning(f"重新设置模式失败，错误码: {code}")
+
+        code = xarm.set_state(0)  # Sport state
+        if code != 0:
+            logger_.warning(f"重新设置状态失败，错误码: {code}")
+
+        logger_.info("✅ 机械臂准备就绪")
+
     except Exception as e:
         logger_.error(f"机械臂连接失败: {e}")
         popup_message("错误", f"机械臂连接失败: {e}")
