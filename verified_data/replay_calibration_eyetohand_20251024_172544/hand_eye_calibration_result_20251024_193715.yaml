@@ -1,0 +1,125 @@
+camera_to_base:
+  quaternion:
+    w: -0.1655052960621685
+    x: 0.8754789432382767
+    y: 0.4456517946175977
+    z: -0.0868279613712013
+  rotation_matrix:
+  - - 0.5877107661564712
+    - 0.7515765495016813
+    - -0.2995475681472308
+  - - 0.8090584993145422
+    - -0.5480049498589771
+    - 0.21240272977756414
+  - - -0.004516639311942017
+    - -0.36718287700981733
+    - -0.9301378041989903
+  translation:
+    x: 0.5915261007970601
+    y: -0.2066109442740041
+    z: 0.9669003066611127
+data_statistics:
+  frames_used: 49/60
+  inlier_frame_ids:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 12
+  - 13
+  - 16
+  - 17
+  - 18
+  - 26
+  - 27
+  - 28
+  - 29
+  - 30
+  - 31
+  - 32
+  - 33
+  - 34
+  - 35
+  - 37
+  - 39
+  - 40
+  - 41
+  - 42
+  - 44
+  - 45
+  - 46
+  - 47
+  - 48
+  - 49
+  - 50
+  - 51
+  - 53
+  - 55
+  - 56
+  - 57
+  - 58
+  - 59
+  - 60
+  - 62
+  - 64
+  - 65
+  - 66
+  - 67
+method: Optimized_Shah_with_RANSAC
+mode: eye_to_hand
+quality:
+  quality: "\U0001F31F \u4F18\u79C0"
+  rotation_error_deg:
+    max: !!python/object/apply:numpy._core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      QQkOYEXpB0A=
+    mean: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      IrsmHXsZ8T8=
+    median: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      lpoHvWT/7T8=
+    std: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      Ej2dO/j54z8=
+  translation_error_mm:
+    max: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      6dzDER3lG0A=
+    mean: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      OC98HtF+/z8=
+    median: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      +6FbyuQq/z8=
+    std: !!python/object/apply:numpy._core.multiarray.scalar
+    - *id001
+    - !!binary |
+      VBPMDXJ29D8=
+timestamp: '20251024_193715'
+version: 3.5.0

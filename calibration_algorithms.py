@@ -448,7 +448,7 @@ class HandEyeCalibration:
                 print(f"  求解: camera_to_base")
 
         if mode == 'eye_to_hand':
-            return HandEyeCalibration.multi_algorithm_fusion_eye_to_hand(
+            return HandEyeCalibration.multi_algorithm_fusion_eye_to_hand_todo(
                 R_gripper2base, t_gripper2base,
                 R_target2cam, t_target2cam, verbose=verbose
             )
