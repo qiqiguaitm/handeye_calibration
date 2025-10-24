@@ -1,6 +1,6 @@
 {
     "version": "3.5.1",
-    "timestamp": "20251024_221132",
+    "timestamp": "20251024_220414",
     "mode": "eye_to_hand",
     "method": "Optimized_Horaud_with_RANSAC",
     "camera_to_base": {
