@@ -143,32 +143,33 @@ class HandEyeCalibrator:
             calibration_mode = self.config.get('mode', 'eye_in_hand')
 
         # Select the appropriate intrinsics file based on calibration mode
+        print(f"  🔍 调试：当前file_config中的key: {list(self.file_config.keys())}")
         if calibration_mode == 'eye_in_hand':
-            intrinsics_file = "hand_camera_intrinsics.yaml"
+            # 从配置中获取eye_in_hand模式的相机内参文件
+            intrinsics_file = self.file_config.get('eye_in_hand', {}).get('camera', {}).get('intrinsics_file')
+            if not intrinsics_file:
+                raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的相机内参文件未配置，请在config中设置 eye_in_hand.camera.intrinsics_file")
             print(f"  📸 使用 Eye-in-Hand 模式相机内参: {intrinsics_file}")
         elif calibration_mode == 'eye_to_hand':
-            intrinsics_file = "top_camera_intrinsics.yaml"
+            # 从配置中获取eye_to_hand模式的相机内参文件
+            print(f"  🔍 调试：eye_to_hand配置: {self.file_config.get('eye_to_hand', {})}")
+            intrinsics_file = self.file_config.get('eye_to_hand', {}).get('camera', {}).get('intrinsics_file')
+            if not intrinsics_file:
+                raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的相机内参文件未配置，请在config中设置 eye_to_hand.camera.intrinsics_file")
             print(f"  📸 使用 Eye-to-Hand 模式相机内参: {intrinsics_file}")
         else:
-            print(f"  ⚠️ 警告：未知的标定模式 '{calibration_mode}'，使用默认内参")
-            intrinsics_file = "hand_camera_intrinsics.yaml"
+            raise ValueError(f"❌ 配置错误：未知的标定模式 '{calibration_mode}'，支持的模式: 'eye_in_hand', 'eye_to_hand'")
 
         # Load the selected intrinsics file
         intrinsics_path = os.path.join(self.config_dir, intrinsics_file)
-        if os.path.exists(intrinsics_path):
-            camera_matrix, dist_coeffs = CameraIntrinsicsManager.load_from_file(intrinsics_path)
-            source = f"File: {intrinsics_file}"
-        else:
-            # Fallback to default behavior if file doesn't exist
-            print(f"  ⚠️ 警告：找不到 {intrinsics_file}，尝试默认方式加载")
-            camera_matrix, dist_coeffs, source = \
-                CameraIntrinsicsManager.get_camera_intrinsics(
-                    config_dir=self.config_dir
-                )
+        if not os.path.exists(intrinsics_path):
+            raise FileNotFoundError(f"❌ 相机内参文件不存在: {intrinsics_path}")
+        
+        camera_matrix, dist_coeffs = CameraIntrinsicsManager.load_from_file(intrinsics_path)
+        source = f"File: {intrinsics_file}"
 
         if camera_matrix is None:
-            print(f"  Error: Failed to load camera intrinsics")
-            return None, None, None, None, None
+            raise ValueError(f"❌ 相机内参加载失败: {intrinsics_file}")
 
         print(f"  ✅ 内参加载成功 ({source})")
         print(f"     焦距: fx={camera_matrix[0,0]:.2f}, fy={camera_matrix[1,1]:.2f}")
@@ -394,7 +395,7 @@ class HandEyeCalibrator:
     # Calibration Computation
     # ========================================================================
 
-    def calibrate(self, data_dir, mode=None, save_results=True, redetect_corners=False):
+    def calibrate(self, data_dir, calibration_mode, save_results=True, redetect_corners=False):
         """Perform hand-eye calibration computation
 
         Args:
@@ -409,30 +410,53 @@ class HandEyeCalibrator:
         # Step 0: Load data (包含 metadata)
         print("\nStep 0: Load calibration data")
         
+        # 先加载数据以获取metadata
+        collected_data, camera_matrix, dist_coeffs, source, data_metadata = \
+            self.load_calibration_data(data_dir, redetect_corners=redetect_corners, calibration_mode=calibration_mode)
 
-        # 确定标定模式: 优先级 mode参数 > metadata > config默认值
-        if mode is not None:
-            calibration_mode = mode
-        elif 'calibration_mode' in data_metadata:
-            calibration_mode = data_metadata['calibration_mode']
-            print(f"  使用数据的标定模式: {calibration_mode}")
-        else:
-            calibration_mode = self.config.get('mode', 'eye_in_hand')
-            print(f"  使用默认标定模式: {calibration_mode}")
+        if collected_data is None:
+            print("Failed to load data")
+            return None, None, None
+        
+        # 强制要求data_metadata包含calibration_mode
+        if 'calibration_mode' not in data_metadata:
+            raise ValueError("❌ 数据错误：数据metadata中缺少calibration_mode，请确保数据收集时正确设置了标定模式")
+        
+        metadata_mode = data_metadata['calibration_mode']
 
+        # 校验传入的calibration_mode参数与data_metadata的一致性
+        if calibration_mode and calibration_mode != metadata_mode:
+            raise ValueError(f"❌ 模式不一致：指定的标定模式是'{calibration_mode}'，但数据metadata中是'{metadata_mode}'，请确保一致性")
+        
+        # 校验camera serial_id一致性
+        config_serial_id = self.file_config.get(metadata_mode, {}).get('camera', {}).get('serial_id')
+        metadata_camera_id = data_metadata.get('camera_id')
+        
+        if not config_serial_id:
+            raise ValueError(f"❌ 配置错误：'{metadata_mode}' 模式的相机serial_id未配置，请在config中设置 {metadata_mode}.camera.serial_id")
+        
+        if not metadata_camera_id:
+            raise ValueError(f"❌ 数据错误：数据metadata中缺少camera_id，请确保数据收集时正确记录了相机ID")
+        
+        if config_serial_id != metadata_camera_id:
+            raise ValueError(f"❌ 相机不匹配：配置文件中的serial_id是'{config_serial_id}'，但数据metadata中的camera_id是'{metadata_camera_id}'，请确保使用相同的相机")
+        
         # 根据确定的标定模式设置 chessboard 参数
-        if calibration_mode in self.file_config and 'chessboard' in self.file_config[calibration_mode]:
-            # New structure: chessboard is under each mode
-            self.board_size = tuple(self.file_config[calibration_mode]['chessboard']['board_size'])
-            self.chessboard_size_mm = self.file_config[calibration_mode]['chessboard']['square_size_mm']
-        elif 'chessboard' in self.file_config:
-            # Fallback to old structure (top-level chessboard)
-            self.board_size = tuple(self.file_config['chessboard']['board_size'])
-            self.chessboard_size_mm = self.file_config['chessboard']['square_size_mm']
-        else:
-            # Default values
-            self.board_size = (6, 4)
-            self.chessboard_size_mm = 50.0
+        if calibration_mode not in self.file_config:
+            raise ValueError(f"❌ 配置错误：标定模式 '{calibration_mode}' 在配置文件中未找到")
+        
+        if 'chessboard' not in self.file_config[calibration_mode]:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的棋盘格参数未配置，请在config中设置 {calibration_mode}.chessboard")
+        
+        chessboard_config = self.file_config[calibration_mode]['chessboard']
+        
+        if 'board_size' not in chessboard_config:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 board_size 未配置")
+        if 'square_size_mm' not in chessboard_config:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 square_size_mm 未配置")
+        
+        self.board_size = tuple(chessboard_config['board_size'])
+        self.chessboard_size_mm = chessboard_config['square_size_mm']
 
         # Update config with actual values
         self.config['board_size'] = self.board_size
@@ -448,16 +472,6 @@ class HandEyeCalibrator:
         print(f"Hand-Eye Calibration Computation ({calibration_mode.upper().replace('_', '-')})")
         print("="*60)
 
-
-         # Pass mode to load_calibration_data for selecting correct intrinsics
-        collected_data, camera_matrix, dist_coeffs, source, data_metadata = \
-            self.load_calibration_data(data_dir, redetect_corners=redetect_corners, calibration_mode=mode)
-
-        if collected_data is None:
-            print("Failed to load data")
-            return None, None, None
-        
-        
         
         # Step 1: Data quality filtering
         print("\nStep 1: Data quality filtering")
@@ -855,15 +869,15 @@ def main():
     print("\n标定模式:")
     print("  1. Eye-in-Hand (相机在末端)")
     print("  2. Eye-to-Hand (相机固定)")
-    print("  0. 自动检测（从数据目录的 metadata 读取）")
-    mode_choice = input("选择模式 (0/1/2) [默认 0]: ").strip()
+    mode_choice = input("选择模式 (1/2): ").strip()
 
     if mode_choice == "1":
-        calibration_mode_default = "eye_in_hand"
+        calibration_mode = "eye_in_hand"
     elif mode_choice == "2":
-        calibration_mode_default = "eye_to_hand"
+        calibration_mode = "eye_to_hand"
     else:
-        calibration_mode_default = None  # 自动检测
+        raise ValueError("❌ 输入错误：请选择 1 或 2")
+    
 
     # 选择是否重新检测角点
     print("\n角点检测:")
@@ -898,7 +912,7 @@ def main():
             print(f"{'='*60}")
 
             # 使用指定模式或自动检测（在 calibrate 函数内部）
-            R, t, quality = calibrator.calibrate(dir_path, mode=calibration_mode_default, save_results=True, redetect_corners=redetect_corners)
+            R, t, quality = calibrator.calibrate(dir_path, calibration_mode=calibration_mode, save_results=True, redetect_corners=redetect_corners)
 
             if R is not None:
                 print(f"✅ Success")
@@ -909,21 +923,23 @@ def main():
         # Calibrate selected data
         try:
             index = int(choice) - 1
-            if 0 <= index < len(data_dirs):
-                selected_dir = data_dirs[index]
-                print(f"\nSelected: {os.path.basename(selected_dir)}")
-
-                # 使用指定模式或自动检测（在 calibrate 函数内部）
-                R, t, quality = calibrator.calibrate(selected_dir, mode=calibration_mode_default, save_results=True, redetect_corners=redetect_corners)
-
-                if R is not None:
-                    print(f"\n✅ Calibration successful!")
-                else:
-                    print(f"\n❌ Calibration failed")
-            else:
-                print("Invalid selection")
         except ValueError:
             print("Please enter a valid number or 'all'")
+            return
+            
+        if 0 <= index < len(data_dirs):
+            selected_dir = data_dirs[index]
+            print(f"\nSelected: {os.path.basename(selected_dir)}")
+
+            # 使用指定模式或自动检测（在 calibrate 函数内部）
+            R, t, quality = calibrator.calibrate(selected_dir, calibration_mode=calibration_mode, save_results=True, redetect_corners=redetect_corners)
+
+            if R is not None:
+                print(f"\n✅ Calibration successful!")
+            else:
+                print(f"\n❌ Calibration failed")
+        else:
+            print("Invalid selection")
 
 
 if __name__ == "__main__":
