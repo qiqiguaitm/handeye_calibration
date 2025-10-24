@@ -45,38 +45,15 @@ class HandEyeCalibration:
         Returns:
             str: 带emoji的质量评级字符串
         """
-        if mode == 'eye_to_hand':
-            # Eye-to-Hand 标准略宽松一些，主要看平移误差
-            if translation_error_mm < 3.0:
-                return "🌟 优秀"
-            elif translation_error_mm < 5.0:
-                return "👍 良好"
-            elif translation_error_mm < 10.0:
-                return "⚠️  可接受"
-            else:
-                return "❌ 需要改进"
+        if translation_error_mm < 3.0:
+            return "🌟 优秀"
+        elif translation_error_mm < 5.0:
+            return "👍 良好"
+        elif translation_error_mm < 10.0:
+            return "⚠️  可接受"
         else:
-            # Eye-in-Hand 需要综合考虑平移和旋转误差
-            if rotation_error_deg is not None:
-                # 综合评级：同时考虑平移和旋转
-                if translation_error_mm < 2.0 and rotation_error_deg < 0.3:
-                    return "🌟 优秀"
-                elif translation_error_mm < 5.0 and rotation_error_deg < 0.5:
-                    return "👍 良好"
-                elif translation_error_mm < 10.0 and rotation_error_deg < 1.0:
-                    return "⚠️  可接受"
-                else:
-                    return "❌ 需要改进"
-            else:
-                # 仅基于平移误差
-                if translation_error_mm < 3.0:
-                    return "🌟 优秀"
-                elif translation_error_mm < 5.0:
-                    return "👍 良好"
-                elif translation_error_mm < 10.0:
-                    return "⚠️  可接受"
-                else:
-                    return "❌ 需要改进"
+            return "❌ 需要改进"
+      
 
     @staticmethod
     def format_transformation_result(R, t, transform_name="变换"):
@@ -136,7 +113,7 @@ class HandEyeCalibration:
  
 
     @staticmethod
-    def multi_algorithm_fusion(R_gripper2base, t_gripper2base,
+    def multi_algorithm_fusion_eye_in_hand(R_gripper2base, t_gripper2base,
                                R_target2cam, t_target2cam, verbose=True):
         """多算法融合 - 选择最佳算法
 
@@ -173,9 +150,9 @@ class HandEyeCalibration:
                 )
 
                 # 评估标定质量: 调用专门的评估函数
-                eval_result = HandEyeCalibration.evaluate_calibration(
+                eval_result = HandEyeCalibration.evaluate_calibration_eye_in_hand(
                     R_test, t_test, R_gripper2base, t_gripper2base,
-                    R_target2cam, t_target2cam, verbose=False, mode='eye_in_hand'
+                    R_target2cam, t_target2cam, verbose=False
                 )
                 
                 avg_t_error = eval_result['translation_error_mm']['mean']
@@ -308,119 +285,6 @@ class HandEyeCalibration:
         
         return None, None, None
 
-    @staticmethod
-    def multi_algorithm_fusion_eye_to_hand_todo(R_gripper2base, t_gripper2base,
-                                            R_target2cam, t_target2cam, verbose=True):
-        """Eye-to-Hand 多算法融合 - 使用 calibrateRobotWorldHandEye (OpenCV 4.7+)
-        Args:
-            R_gripper2base: 机器人末端到基座的旋转列表 (需要求逆)
-            t_gripper2base: 机器人末端到基座的平移列表 (需要求逆)
-            R_target2cam: 标靶(世界坐标系)到相机的旋转列表
-            t_target2cam: 标靶(世界坐标系)到相机的平移列表
-            verbose: 是否显示详细信息
-
-        Returns:
-            tuple: (R_cam2base, t_cam2base, method_name) 或 (None, None, None)
-                   注意: 返回的是相机到基座的变换,方便后续使用
-        """
-        # 准备正确的输入: 需要 base2gripper (gripper2base 的逆)
-        R_base2gripper, t_base2gripper = HandEyeCalibration.invert_transformations(
-            R_gripper2base, t_gripper2base
-        )
-
-        # 使用 calibrateRobotWorldHandEye 方法
-        methods = [
-            (cv2.CALIB_ROBOT_WORLD_HAND_EYE_SHAH, "Shah"),
-            (cv2.CALIB_ROBOT_WORLD_HAND_EYE_LI, "Li")
-        ]
-
-        best_result = None
-        best_score = float('inf')
-        best_method = None
-
-        for method_id, method_name in methods:
-            try:
-                R_cam2base, t_cam2base,_,_ = cv2.calibrateRobotWorldHandEye(
-                    R_world2cam=R_target2cam,
-                    t_world2cam=t_target2cam,
-                    R_base2gripper=R_gripper2base,
-                    t_base2gripper=t_gripper2base,
-                    method=method_id
-                )
-
-                # 计算 target2gripper 变换
-                R_target2gripper_list = []
-                t_target2gripper_list = []
-                
-                for i in range(len(R_base2gripper)):
-                    # 构造变换矩阵
-                    T_base2gripper_i = np.eye(4); T_base2gripper_i[:3,:3]=R_base2gripper[i]; T_base2gripper_i[:3,3:4]=t_base2gripper[i]
-                    T_target2cam_i = np.eye(4); T_target2cam_i[:3,:3]=R_target2cam[i]; T_target2cam_i[:3,3:4]=t_target2cam[i]
-                    T_cam2base = np.eye(4); T_cam2base[:3,:3]=R_cam2base; T_cam2base[:3,3:4]=t_cam2base
-                    # 计算 ^eT_o = ^eT_b * ^bT_c * ^cT_o
-                    T_target2gripper_i = T_base2gripper_i @ T_cam2base @ T_target2cam_i
-                    R_target2gripper_list.append(T_target2gripper_i[:3,:3])
-                    t_target2gripper_list.append(T_target2gripper_i[:3,3:4])
-
-                # 旋转矩阵平均（四元数平均）
-                
-                quats_target2gripper = [sst.Rotation.from_matrix(R).as_quat() for R in R_target2gripper_list]
-                mean_quat_target2gripper = np.mean(quats_target2gripper, axis=0)
-                mean_quat_target2gripper = mean_quat_target2gripper / np.linalg.norm(mean_quat_target2gripper)
-                R_target2gripper_avg = sst.Rotation.from_quat(mean_quat_target2gripper).as_matrix()
-                t_target2gripper_avg = np.mean(t_target2gripper_list, axis=0)
-                R_target2gripper, t_target2gripper = R_target2gripper_avg, t_target2gripper_avg
- 
-                
-                
-                # 检查结果是否有效
-                if np.linalg.norm(t_cam2base) < 1e-6:
-                    if verbose:
-                        print(f"   {method_name}: 失败 (无效结果: 零平移向量)")
-                    continue
-
-                
-                eval_result = HandEyeCalibration.evaluate_calibration_eye_to_hand(
-                    R_cam2base, t_cam2base, R_gripper2base, t_gripper2base,
-                    R_target2cam, t_target2cam, R_target2gripper, t_target2gripper,
-                    verbose=False
-                )
-                
-                avg_t_error = eval_result['translation_error_mm']['mean']
-                avg_r_error = eval_result['rotation_error_deg']['mean']
-
-                # 综合评分: 归一化后加权求和
-                # 平移: 5mm = 1.0, 旋转: 0.5° = 1.0
-                score = (avg_t_error / 5.0) + (avg_r_error / 0.5)
-
-                if verbose:
-                    print(f"   {method_name}: 平移={avg_t_error:.3f}mm, 旋转={avg_r_error:.3f}°, 综合={score:.3f}")
-                    HandEyeCalibration.format_transformation_result(R_cam2base, t_cam2base, f"{method_name} Camera_to_Base")
-                    HandEyeCalibration.format_transformation_result(R_target2gripper, t_target2gripper, f"{method_name} Target_to_Gripper")
-
-                if score < best_score:
-                    best_score = score
-                    # 保存主结果和副结果
-                    best_result = (R_cam2base, t_cam2base, R_target2gripper, t_target2gripper)
-                    best_method = method_name
-
-            except Exception as e:
-                if verbose:
-                    print(f"   {method_name}: 失败 ({type(e).__name__}: {str(e)})")
-
-        if best_result:
-            # 保存完整的标定结果（包括副结果）到类变量
-            HandEyeCalibration._calibration_details = {
-                'R_cam2base': best_result[0],
-                't_cam2base': best_result[1],
-                'R_target2gripper': best_result[2],
-                't_target2gripper': best_result[3],
-                'method': best_method,
-                'mode': 'eye_to_hand'
-            }
-            return best_result[0], best_result[1], best_method
-
-        return None, None, None
 
     @staticmethod
     def multi_algorithm_fusion_with_mode(R_gripper2base, t_gripper2base,
@@ -448,20 +312,20 @@ class HandEyeCalibration:
                 print(f"  求解: camera_to_base")
 
         if mode == 'eye_to_hand':
-            return HandEyeCalibration.multi_algorithm_fusion_eye_to_hand_todo(
+            return HandEyeCalibration.multi_algorithm_fusion_eye_to_hand(
                 R_gripper2base, t_gripper2base,
                 R_target2cam, t_target2cam, verbose=verbose
             )
         else:
             # Eye-in-hand: 使用标准接口
-            return HandEyeCalibration.multi_algorithm_fusion(
+            return HandEyeCalibration.multi_algorithm_fusion_eye_in_hand(
                 R_gripper2base, t_gripper2base,
                 R_target2cam, t_target2cam, verbose=verbose
             )
 
 
     @staticmethod
-    def levenberg_marquardt_optimization(R_initial, t_initial, R_gripper2base,
+    def levenberg_marquardt_optimization_eye_in_hand(R_initial, t_initial, R_gripper2base,
                                          t_gripper2base, R_target2cam, t_target2cam,
                                          verbose=True):
         """Levenberg-Marquardt 非线性优化
@@ -775,7 +639,7 @@ class HandEyeCalibration:
             #return R_initial, t_initial
         else:
             # Eye-in-hand: 使用标准优化方法
-            return HandEyeCalibration.levenberg_marquardt_optimization(
+            return HandEyeCalibration.levenberg_marquardt_optimization_eye_in_hand(
                 R_initial, t_initial, R_gripper2base, t_gripper2base,
                 R_target2cam, t_target2cam, verbose=verbose
             )
@@ -902,7 +766,7 @@ class HandEyeCalibration:
                 from scipy.spatial.transform import Rotation as R_scipy
                 euler_deg = R_scipy.from_matrix(target_poses_in_base[i][:3, :3]).as_euler('xyz', degrees=True)
                 
-                pose_info = f" | 位姿: X={pos_mm[0]:+6.1f}, Y={pos_mm[1]:+6.1f}, Z={pos_mm[2]:+6.1f}mm, R={euler_deg[0]:+5.1f}°, P={euler_deg[1]:+5.1f}°, Y={euler_deg[2]:+5.1f}°"
+                pose_info = f" | 位姿: X={float(pos_mm[0]):+6.1f}, Y={float(pos_mm[1]):+6.1f}, Z={float(pos_mm[2]):+6.1f}mm, R={float(euler_deg[0]):+5.1f}°, P={float(euler_deg[1]):+5.1f}°, Y={float(euler_deg[2]):+5.1f}°"
                 
                 if i == 0:
                     print(f"✅ 帧 {i+1:2d}: 旋转误差  0.000°  平移误差   0.000mm{pose_info}")
@@ -918,9 +782,10 @@ class HandEyeCalibration:
                     print(f"{status} 帧 {i+1:2d}: 旋转误差 {r_error:6.3f}°  平移误差 {t_error:7.3f}mm{pose_info}")
 
         return result
-
+    
+    
     @staticmethod
-    def evaluate_calibration(R_cam2gripper, t_cam2gripper, R_gripper2base,
+    def evaluate_calibration_with_mode(R_cam2gripper, t_cam2gripper, R_gripper2base,
                             t_gripper2base, R_target2cam, t_target2cam,
                             verbose=True, mode='eye_in_hand', detail=False):
         """评估标定结果质量 - 支持两种模式
@@ -953,6 +818,36 @@ class HandEyeCalibration:
                 R_target2gripper, t_target2gripper,
                 verbose=verbose, detail=detail
             )
+        elif mode == 'eye_in_hand':
+            return HandEyeCalibration.evaluate_calibration_eye_in_hand(
+                R_cam2gripper, t_cam2gripper, R_gripper2base,
+                t_gripper2base, R_target2cam, t_target2cam,
+                verbose=verbose, detail=detail
+            )
+            
+
+    @staticmethod
+    def evaluate_calibration_eye_in_hand(R_cam2gripper, t_cam2gripper, R_gripper2base,
+                            t_gripper2base, R_target2cam, t_target2cam,
+                            verbose=True, detail=False):
+        """评估标定结果质量
+
+        计算位姿重复性误差和稳定性
+
+        Args:
+            R_cam2gripper: 相机到夹爪的旋转矩阵 (eye-in-hand) 或相机到基座 (eye-to-hand)
+            t_cam2gripper: 相机到夹爪的平移向量 (eye-in-hand) 或相机到基座 (eye-to-hand)
+            R_gripper2base: 机器人末端到基座的旋转列表
+            t_gripper2base: 机器人末端到基座的平移列表
+            R_target2cam: 标靶到相机的旋转列表
+            t_target2cam: 标靶到相机的平移列表
+            verbose: 是否显示详细信息
+            mode: 'eye_in_hand' 或 'eye_to_hand'
+            detail: 是否显示每帧详细信息
+
+        Returns:
+            dict: 评估结果
+        """
 
         # Eye-in-hand: 计算每帧下target在base坐标系的位姿
         R_preds = []
@@ -1023,7 +918,7 @@ class HandEyeCalibration:
                 from scipy.spatial.transform import Rotation as R_scipy
                 euler_deg = R_scipy.from_matrix(R_preds[i]).as_euler('xyz', degrees=True)
                 
-                pose_info = f" | 位姿: X={pos_mm[0]:+6.1f}, Y={pos_mm[1]:+6.1f}, Z={pos_mm[2]:+6.1f}mm, R={euler_deg[0]:+5.1f}°, P={euler_deg[1]:+5.1f}°, Y={euler_deg[2]:+5.1f}°"
+                pose_info = f" | 位姿: X={float(pos_mm[0]):+6.1f}, Y={float(pos_mm[1]):+6.1f}, Z={float(pos_mm[2]):+6.1f}mm, R={float(euler_deg[0]):+5.1f}°, P={float(euler_deg[1]):+5.1f}°, Y={float(euler_deg[2]):+5.1f}°"
                 
                 if i == 0:
                     print(f"✅ 帧 {i+1:2d}: 旋转误差  0.000°  平移误差   0.000mm{pose_info}")
