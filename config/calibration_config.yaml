@@ -33,7 +33,8 @@ eye_to_hand:
   # 相机配置
   camera:
     #serial_id: "318122302992"  # RealSense top camera
-    #intrinsics_file: "top_camera_intrinsics_xarm.yaml"  # 相对于 config/ 目录
+    #intrinsics_file: "top_camera_intrinsics_xarm_d455.yaml"  # 相对于 config/ 目录
+
     serial_id: "335522072402"  # RealSense top camera
     intrinsics_file: "top_camera_intrinsics_xarm_d435.yaml"  # 相对于 config/ 目录
 

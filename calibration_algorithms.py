@@ -243,6 +243,7 @@ class HandEyeCalibration:
                     R_target2cam, t_target2cam,
                     method=method_id
                 )
+                
                 # 计算 target2gripper 变换
                 R_target2gripper_list = []
                 t_target2gripper_list = []
@@ -272,7 +273,7 @@ class HandEyeCalibration:
                     R_target2cam, t_target2cam, R_target2gripper, t_target2gripper,
                     verbose=False
                 )
-                
+
                 avg_t_error = eval_result['translation_error_mm']['mean']
                 avg_r_error = eval_result['rotation_error_deg']['mean']
                 
@@ -339,29 +340,41 @@ class HandEyeCalibration:
 
         for method_id, method_name in methods:
             try:
-                
-                # 确保数据格式正确 - OpenCV要求特定的数组格式
-                R_world2cam_list = [np.array(R, dtype=np.float64) for R in R_target2cam]
-                t_world2cam_list = [np.array(t, dtype=np.float64).reshape(3,1) for t in t_target2cam]
-                R_base2gripper_list = [np.array(R, dtype=np.float64) for R in R_base2gripper]
-                t_base2gripper_list = [np.array(t, dtype=np.float64).reshape(3,1) for t in t_base2gripper]
-                
-                R_bc, t_bc, R_eo, t_eo = cv2.calibrateRobotWorldHandEye(
-                    R_world2cam=R_world2cam_list,
-                    t_world2cam=t_world2cam_list,
-                    R_base2gripper=R_base2gripper_list,
-                    t_base2gripper=t_base2gripper_list,
+                R_cam2base, t_cam2base,_,_ = cv2.calibrateRobotWorldHandEye(
+                    R_world2cam=R_target2cam,
+                    t_world2cam=t_target2cam,
+                    R_base2gripper=R_gripper2base,
+                    t_base2gripper=t_gripper2base,
                     method=method_id
                 )
-                R_base2cam, t_base2cam, R_gripper2target, t_gripper2target = R_bc, t_bc, R_eo, t_eo
-                R_cam2base = R_base2cam.T
-                t_cam2base = -R_cam2base @ t_base2cam
-                R_target2gripper = R_gripper2target.T
-                t_target2gripper = -R_target2gripper @ t_gripper2target
+
+                # 计算 target2gripper 变换
+                R_target2gripper_list = []
+                t_target2gripper_list = []
+                
+                for i in range(len(R_base2gripper)):
+                    # 构造变换矩阵
+                    T_base2gripper_i = np.eye(4); T_base2gripper_i[:3,:3]=R_base2gripper[i]; T_base2gripper_i[:3,3:4]=t_base2gripper[i]
+                    T_target2cam_i = np.eye(4); T_target2cam_i[:3,:3]=R_target2cam[i]; T_target2cam_i[:3,3:4]=t_target2cam[i]
+                    T_cam2base = np.eye(4); T_cam2base[:3,:3]=R_cam2base; T_cam2base[:3,3:4]=t_cam2base
+                    # 计算 ^eT_o = ^eT_b * ^bT_c * ^cT_o
+                    T_target2gripper_i = T_base2gripper_i @ T_cam2base @ T_target2cam_i
+                    R_target2gripper_list.append(T_target2gripper_i[:3,:3])
+                    t_target2gripper_list.append(T_target2gripper_i[:3,3:4])
+
+                # 旋转矩阵平均（四元数平均）
+                
+                quats_target2gripper = [sst.Rotation.from_matrix(R).as_quat() for R in R_target2gripper_list]
+                mean_quat_target2gripper = np.mean(quats_target2gripper, axis=0)
+                mean_quat_target2gripper = mean_quat_target2gripper / np.linalg.norm(mean_quat_target2gripper)
+                R_target2gripper_avg = sst.Rotation.from_quat(mean_quat_target2gripper).as_matrix()
+                t_target2gripper_avg = np.mean(t_target2gripper_list, axis=0)
+                R_target2gripper, t_target2gripper = R_target2gripper_avg, t_target2gripper_avg
+ 
                 
                 
                 # 检查结果是否有效
-                if np.linalg.norm(t_base2cam) < 1e-6:
+                if np.linalg.norm(t_cam2base) < 1e-6:
                     if verbose:
                         print(f"   {method_name}: 失败 (无效结果: 零平移向量)")
                     continue
@@ -570,7 +583,7 @@ class HandEyeCalibration:
     @staticmethod
     def levenberg_marquardt_optimization_eye_to_hand(R_initial, t_initial, R_gripper2base,
                                                       t_gripper2base, R_target2cam, t_target2cam,
-                                                      R_target2gripper_initial=None, verbose=True):
+                                                      verbose=True):
         """Eye-to-Hand Levenberg-Marquardt 非线性优化
 
         基于正确的Eye-to-Hand标定方程同时优化 cam2base 和 target2gripper 变换
@@ -601,38 +614,38 @@ class HandEyeCalibration:
             params = [rvec_cam2base, t_cam2base, rvec_target2gripper, t_target2gripper] (12个参数)
             """
             # 解析参数
-            rvec_cb = params[:3]
-            t_cb = params[3:6].reshape(3, 1)
-            rvec_tg = params[6:9]
-            t_tg = params[9:12].reshape(3, 1)
+            rvec_cam2base = params[:3]
+            t_cam2base = params[3:6].reshape(3, 1)
+            rvec_target2gripper = params[6:9]
+            t_target2gripper = params[9:12].reshape(3, 1)
 
             # 转换为旋转矩阵
-            R_cam2base, _ = cv2.Rodrigues(rvec_cb)
-            R_target2gripper, _ = cv2.Rodrigues(rvec_tg)
+            R_cam2base, _ = cv2.Rodrigues(rvec_cam2base)
+            R_target2gripper, _ = cv2.Rodrigues(rvec_target2gripper)
 
             residuals = []
             for i in range(len(R_gripper2base)):
                 # 左边：T_gripper2base * T_target2gripper (路径1: Target → Gripper → Base)
-                T_gb = np.eye(4)
-                T_gb[:3, :3] = R_gripper2base[i]
-                T_gb[:3, 3:4] = t_gripper2base[i]
+                T_gripper2base = np.eye(4)
+                T_gripper2base[:3, :3] = R_gripper2base[i]
+                T_gripper2base[:3, 3:4] = t_gripper2base[i]
                 
-                T_tg = np.eye(4)
-                T_tg[:3, :3] = R_target2gripper
-                T_tg[:3, 3:4] = t_tg
+                T_target2gripper = np.eye(4)
+                T_target2gripper[:3, :3] = R_target2gripper
+                T_target2gripper[:3, 3:4] = t_target2gripper
                 
-                left = T_gb @ T_tg  # Target → Gripper → Base
+                left = T_gripper2base @ T_target2gripper  # Target → Gripper → Base
                 
                 # 右边：T_cam2base * T_target2cam (路径2: Target → Camera → Base)
-                T_cb = np.eye(4)
-                T_cb[:3, :3] = R_cam2base
-                T_cb[:3, 3:4] = t_cb
+                T_cam2base = np.eye(4)
+                T_cam2base[:3, :3] = R_cam2base
+                T_cam2base[:3, 3:4] = t_cam2base
                 
-                T_tc = np.eye(4)
-                T_tc[:3, :3] = R_target2cam[i]
-                T_tc[:3, 3:4] = t_target2cam[i]
+                T_target2cam = np.eye(4)
+                T_target2cam[:3, :3] = R_target2cam[i]
+                T_target2cam[:3, 3:4] = t_target2cam[i]
                 
-                right = T_cb @ T_tc  # Target → Camera → Base
+                right = T_cam2base @ T_target2cam  # Target → Camera → Base
                 
                 # 计算变换误差：两条路径应该给出相同的Target在Base中的位姿
                 error_T = left - right
@@ -645,44 +658,23 @@ class HandEyeCalibration:
                 t_error = np.linalg.norm(error_T[:3, 3]) * 1000
                 
                 # 添加到残差向量
-                residuals.append(angle_error * 0.3)  # 旋转权重
-                residuals.append(t_error * 0.7)       # 平移权重
+                residuals.append(angle_error)  # 旋转权重
+                residuals.append(t_error)       # 平移权重
             
             return np.array(residuals)
 
-        # 估计初始的target2gripper变换（如果未提供）
-        if R_target2gripper_initial is None:
-            # 使用第一帧数据估算target2gripper
-            # T_target2gripper = T_base2gripper * T_cam2base * T_target2cam
-            R_base2gripper_0, t_base2gripper_0 = HandEyeCalibration.invert_rt(R_gripper2base[0], t_gripper2base[0])
-            
-            T_bg_0 = np.eye(4)
-            T_bg_0[:3, :3] = R_base2gripper_0
-            T_bg_0[:3, 3:4] = t_base2gripper_0
-            
-            T_cam2base_0 = np.eye(4)
-            T_cam2base_0[:3, :3] = R_initial
-            T_cam2base_0[:3, 3:4] = t_initial
-            
-            T_target2cam_0 = np.eye(4)
-            T_target2cam_0[:3, :3] = R_target2cam[0]
-            T_target2cam_0[:3, 3:4] = t_target2cam[0]
-            
-            T_target2gripper_0 = T_bg_0 @ T_cam2base_0 @ T_target2cam_0
-            R_target2gripper_initial = T_target2gripper_0[:3, :3]
-            t_target2gripper_initial = T_target2gripper_0[:3, 3:4]
-        else:
-            # 假设提供了完整的初始估计  
-            t_target2gripper_initial = np.zeros((3, 1))  # 需要根据实际情况提供
+        # 从标定结果中提取target2gripper初始值
+        R_target2gripper_initial = HandEyeCalibration._calibration_details['R_target2gripper']
+        t_target2gripper_initial = HandEyeCalibration._calibration_details['t_target2gripper']
 
         # 初始参数
-        rvec_cb_init, _ = cv2.Rodrigues(R_initial)
-        rvec_tg_init, _ = cv2.Rodrigues(R_target2gripper_initial)
+        rvec_cam2base_init, _ = cv2.Rodrigues(R_initial)
+        rvec_target2gripper_init, _ = cv2.Rodrigues(R_target2gripper_initial)
         
         params_init = np.concatenate([
-            rvec_cb_init.ravel(),
+            rvec_cam2base_init.ravel(),
             t_initial.ravel(),
-            rvec_tg_init.ravel(),
+            rvec_target2gripper_init.ravel(),
             t_target2gripper_initial.ravel()
         ])
 
@@ -695,16 +687,16 @@ class HandEyeCalibration:
         upper_bounds = []
         # cam2base旋转边界 (±5°)
         for i in range(3):
-            lower_bounds.append(rvec_cb_init[i] - 0.087)
-            upper_bounds.append(rvec_cb_init[i] + 0.087)
+            lower_bounds.append(rvec_cam2base_init[i] - 0.087)
+            upper_bounds.append(rvec_cam2base_init[i] + 0.087)
         # cam2base平移边界 (±10mm)
         for i in range(3):
             lower_bounds.append(t_initial[i] - 0.01)
             upper_bounds.append(t_initial[i] + 0.01)
         # target2gripper旋转边界 (±10°)
         for i in range(3):
-            lower_bounds.append(rvec_tg_init[i] - 0.175)
-            upper_bounds.append(rvec_tg_init[i] + 0.175)
+            lower_bounds.append(rvec_target2gripper_init[i] - 0.175)
+            upper_bounds.append(rvec_target2gripper_init[i] + 0.175)
         # target2gripper平移边界 (±20mm)
         for i in range(3):
             lower_bounds.append(t_target2gripper_initial[i] - 0.02)
@@ -723,13 +715,13 @@ class HandEyeCalibration:
         )
 
         # 解析结果
-        rvec_cb_opt = result.x[:3]
-        t_cb_opt = result.x[3:6].reshape(3, 1)
-        rvec_tg_opt = result.x[6:9]
-        t_tg_opt = result.x[9:12].reshape(3, 1)
+        rvec_cam2base_opt = result.x[:3]
+        t_cam2base_opt = result.x[3:6].reshape(3, 1)
+        rvec_target2gripper_opt = result.x[6:9]
+        t_target2gripper_opt = result.x[9:12].reshape(3, 1)
         
-        R_cam2base_opt, _ = cv2.Rodrigues(rvec_cb_opt)
-        R_target2gripper_opt, _ = cv2.Rodrigues(rvec_tg_opt)
+        R_cam2base_opt, _ = cv2.Rodrigues(rvec_cam2base_opt)
+        R_target2gripper_opt, _ = cv2.Rodrigues(rvec_target2gripper_opt)
 
         # 计算优化后残差
         residuals_after = residual_function(result.x)
@@ -748,7 +740,12 @@ class HandEyeCalibration:
                 print(f"   迭代次数: {result.nfev}, 状态: {result.status} ({result.message})")
                 status = "收敛" if result.success else "未收敛"
                 print(f"   优化状态: {status}")
-            return R_cam2base_opt, t_cb_opt
+            
+            # 更新标定结果中的target2gripper变换
+            HandEyeCalibration._calibration_details['R_target2gripper'] = R_target2gripper_opt
+            HandEyeCalibration._calibration_details['t_target2gripper'] = t_target2gripper_opt
+            
+            return R_cam2base_opt, t_cam2base_opt
 
     @staticmethod
     def levenberg_marquardt_optimization_with_mode(R_initial, t_initial, R_gripper2base,
