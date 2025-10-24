@@ -312,7 +312,7 @@ def save_calibration_metadata():
         'collection_mode': 'manual',
         'camera_id': camera_serial if camera_serial else 'unknown',
         'timestamp': timestamp,
-        'version': '3.5.1'  # 改进 replay 模式错误处理和运动规划
+        'version': '3.5.2'  # 改进 replay 模式错误处理和运动规划
     }
 
     metadata_file = os.path.join(data_path, "calibration_metadata.json")
