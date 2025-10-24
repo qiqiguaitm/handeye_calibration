@@ -1,0 +1,97 @@
+camera_to_gripper:
+  quaternion:
+    w: 0.703477850794809
+    x: 0.007062480657422827
+    y: -0.002829966550326121
+    z: 0.7106764566927796
+  rotation_matrix:
+  - - -0.010138069616160416
+    - -0.999930265897459
+    - 0.006056639884867856
+  - - 0.9998503195613676
+    - -0.01022180946088143
+    - -0.01395897862941715
+  - - 0.014019915031446332
+    - 0.005914216227237724
+    - 0.9998842253125753
+  translation:
+    x: 0.06554667856046859
+    y: -0.024274674354875233
+    z: 0.016213758297670838
+data_statistics:
+  frames_used: 21/56
+  inlier_frame_ids:
+  - 1
+  - 2
+  - 7
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 22
+  - 23
+  - 29
+  - 37
+  - 45
+  - 48
+  - 50
+method: Optimized_Daniilidis_with_RANSAC
+mode: eye_in_hand
+quality:
+  quality: "\u5408\u683C"
+  rotation_error_deg:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      NMkUnd837z8=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      ZklB6d0g4T8=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      wsOEE08O4D8=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      0QAsk2HOyj8=
+  translation_error_mm:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      ofFJriSlFEA=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      mPUw8kW0CEA=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      0Y6GyKo9CUA=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      oD06ERxt8T8=
+timestamp: '20251023_145906'
+version: 3.3.0

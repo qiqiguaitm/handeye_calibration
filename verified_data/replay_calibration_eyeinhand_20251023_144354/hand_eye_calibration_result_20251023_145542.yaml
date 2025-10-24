@@ -1,0 +1,97 @@
+camera_to_gripper:
+  quaternion:
+    w: 0.6994325126813359
+    x: 0.010666765624222578
+    y: -0.0005954403936238515
+    z: 0.7146187975180394
+  rotation_matrix:
+  - - -0.02136076063078158
+    - -0.999667945160958
+    - 0.014412401706248804
+  - - 0.99964253946847
+    - -0.021587611310021054
+    - -0.01577239116163608
+  - - 0.01607828318890598
+    - 0.0140703395692955
+    - 0.9997717311237112
+  translation:
+    x: 0.06050795497313822
+    y: -0.022758782219944932
+    z: 0.01651231409860767
+data_statistics:
+  frames_used: 21/56
+  inlier_frame_ids:
+  - 1
+  - 2
+  - 7
+  - 10
+  - 11
+  - 12
+  - 13
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 22
+  - 23
+  - 29
+  - 37
+  - 45
+  - 48
+  - 50
+method: Optimized_Daniilidis_with_RANSAC
+mode: eye_in_hand
+quality:
+  quality: "\u5408\u683C"
+  rotation_error_deg:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      rGVK81M18D8=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      7NAGBurn5D8=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      +i9BEjAW5T8=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      +18n9Qq8zD8=
+  translation_error_mm:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      XGPGrG5zD0A=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      u1mNfOn/AUA=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      hkwPVPIrAkA=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      KcVX36ng6j8=
+timestamp: '20251023_145542'
+version: 3.3.0

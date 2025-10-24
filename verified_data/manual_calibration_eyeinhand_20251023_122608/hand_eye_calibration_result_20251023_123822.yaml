@@ -1,0 +1,107 @@
+camera_to_gripper:
+  quaternion:
+    w: 0.6997423690344844
+    x: -0.019894441987086176
+    y: 0.014627816685239966
+    z: 0.713968385248992
+  rotation_matrix:
+  - - -0.019929656312059788
+    - -0.9997698831205946
+    - -0.007936599039635374
+  - - 0.9986058341188255
+    - -0.020293287914060893
+    - 0.04872956525028367
+  - - -0.04887941144416327
+    - -0.0069543706163675105
+    - 0.998780476314091
+  translation:
+    x: 0.09352188366611962
+    y: -0.015225974795238302
+    z: -0.016601344238950325
+data_statistics:
+  frames_used: 31/64
+  inlier_frame_ids:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+  - 10
+  - 11
+  - 13
+  - 15
+  - 16
+  - 18
+  - 19
+  - 20
+  - 21
+  - 24
+  - 28
+  - 29
+  - 33
+  - 34
+  - 35
+  - 38
+  - 46
+  - 47
+  - 58
+  - 59
+  - 63
+  - 65
+method: Optimized_Daniilidis_with_RANSAC
+mode: eye_in_hand
+quality:
+  quality: "\u8F83\u5DEE"
+  rotation_error_deg:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      p+0TffEwJkA=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      C2CcXWF6IUA=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      vi0VNAZIIkA=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      ONt/v1i/+z8=
+  translation_error_mm:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      TqiDm2B6QUA=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      lxoFUmQzMUA=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      D89kxmVEMUA=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      SVk2ywKNIUA=
+timestamp: '20251023_123822'
+version: 3.3.0

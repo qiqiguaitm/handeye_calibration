@@ -63,11 +63,14 @@ class HandEyeCalibrator:
         else:
             file_config = {}
 
-        # Default configuration
+        # Store the full config for later use
+        self.file_config = file_config
+
+        # Default configuration (without specific board_size yet)
         self.config = {
             'mode': file_config.get('calibration_mode', 'eye_in_hand'),
-            'board_size': tuple(file_config.get('chessboard', {}).get('board_size', [6, 4])),
-            'chessboard_size_mm': file_config.get('chessboard', {}).get('square_size_mm', 50.0),
+            'board_size': None,  # Will be set based on actual mode
+            'chessboard_size_mm': None,  # Will be set based on actual mode
             'quality_filter': file_config.get('quality_filter', {
                 'min_motion_mm': 5.0,
                 'min_rotation_deg': 2.0,
@@ -85,20 +88,22 @@ class HandEyeCalibrator:
         if config:
             self.config.update(config)
 
-        # Unpack common config
-        self.board_size = tuple(self.config['board_size'])
-        self.chessboard_size_mm = self.config['chessboard_size_mm']
+        # Don't set board_size and chessboard_size_mm yet - will be set in calibrate()
+        # based on the actual calibration mode
+        self.board_size = None
+        self.chessboard_size_mm = None
 
     # ========================================================================
     # Load Data
     # ========================================================================
 
-    def load_calibration_data(self, data_dir, redetect_corners=False):
+    def load_calibration_data(self, data_dir, redetect_corners=False, calibration_mode=None):
         """Load calibration data from directory
 
         Args:
             data_dir: Directory containing calibration data
             redetect_corners: If True, re-detect corners from images instead of using saved corners
+            calibration_mode: Calibration mode ('eye_in_hand' or 'eye_to_hand'), used for selecting intrinsics
 
         Supports both new format (calibration_data.json) and legacy format (poses.txt + images)
 
@@ -120,12 +125,56 @@ class HandEyeCalibrator:
                     metadata = json.load(f)
                     if 'calibration_mode' in metadata:
                         print(f"  检测到标定模式: {metadata['calibration_mode']}")
+                        # If calibration_mode not provided, use metadata
+                        if calibration_mode is None:
+                            calibration_mode = metadata['calibration_mode']
             except Exception as e:
                 print(f"  Warning: Failed to load metadata: {e}")
 
         # Try new format first (calibration_data.json)
         data_file = os.path.join(data_dir, "calibration_data.json")
         poses_file = os.path.join(data_dir, "poses.txt")
+        
+        
+        
+        # Load camera intrinsics based on calibration mode
+        # Default to config mode if calibration_mode is None
+        if calibration_mode is None:
+            calibration_mode = self.config.get('mode', 'eye_in_hand')
+
+        # Select the appropriate intrinsics file based on calibration mode
+        if calibration_mode == 'eye_in_hand':
+            intrinsics_file = "hand_camera_intrinsics.yaml"
+            print(f"  📸 使用 Eye-in-Hand 模式相机内参: {intrinsics_file}")
+        elif calibration_mode == 'eye_to_hand':
+            intrinsics_file = "top_camera_intrinsics.yaml"
+            print(f"  📸 使用 Eye-to-Hand 模式相机内参: {intrinsics_file}")
+        else:
+            print(f"  ⚠️ 警告：未知的标定模式 '{calibration_mode}'，使用默认内参")
+            intrinsics_file = "hand_camera_intrinsics.yaml"
+
+        # Load the selected intrinsics file
+        intrinsics_path = os.path.join(self.config_dir, intrinsics_file)
+        if os.path.exists(intrinsics_path):
+            camera_matrix, dist_coeffs = CameraIntrinsicsManager.load_from_file(intrinsics_path)
+            source = f"File: {intrinsics_file}"
+        else:
+            # Fallback to default behavior if file doesn't exist
+            print(f"  ⚠️ 警告：找不到 {intrinsics_file}，尝试默认方式加载")
+            camera_matrix, dist_coeffs, source = \
+                CameraIntrinsicsManager.get_camera_intrinsics(
+                    config_dir=self.config_dir
+                )
+
+        if camera_matrix is None:
+            print(f"  Error: Failed to load camera intrinsics")
+            return None, None, None, None, None
+
+        print(f"  ✅ 内参加载成功 ({source})")
+        print(f"     焦距: fx={camera_matrix[0,0]:.2f}, fy={camera_matrix[1,1]:.2f}")
+        print(f"     主点: cx={camera_matrix[0,2]:.2f}, cy={camera_matrix[1,2]:.2f}")
+
+
 
         collected_data = []
 
@@ -138,17 +187,6 @@ class HandEyeCalibrator:
                 # Load camera intrinsics if redetecting corners
                 if redetect_corners:
                     print("🔄 重新检测角点模式")
-                    camera_matrix, dist_coeffs, source = \
-                        CameraIntrinsicsManager.get_camera_intrinsics(
-                            config_dir=self.config_dir
-                        )
-
-                    if camera_matrix is None:
-                        print(f"❌ 错误: 无法加载相机内参")
-                        return None, None, None, None, None
-
-                    print(f"📷 内参来源: {source}")
-
                 # Process each frame
                 for item in data:
                     # Skip frames where chessboard was not detected (if not redetecting)
@@ -248,18 +286,6 @@ class HandEyeCalibrator:
 
                 print(f"📊 找到 {len(poses)} 个位姿数据")
 
-                # Load camera intrinsics first (needed for corner detection)
-                camera_matrix, dist_coeffs, source = \
-                    CameraIntrinsicsManager.get_camera_intrinsics(
-                        config_dir=self.config_dir
-                    )
-
-                if camera_matrix is None:
-                    print(f"❌ 错误: 无法加载相机内参")
-                    return None, None, None, None, None
-
-                print(f"📷 内参来源: {source}")
-
                 # Process each image to detect corners
                 print("\n检测棋盘格...")
                 for pose_data in poses:
@@ -323,18 +349,6 @@ class HandEyeCalibrator:
             print(f"  Error: No calibration data found (neither calibration_data.json nor poses.txt)")
             return None, None, None, None, None
 
-        # Load camera intrinsics (for new format)
-        camera_matrix, dist_coeffs, source = \
-            CameraIntrinsicsManager.get_camera_intrinsics(
-                config_dir=self.config_dir
-            )
-
-        if camera_matrix is None:
-            print(f"  Error: Failed to load camera intrinsics")
-            return None, None, None, None, None
-
-        print(f"  Intrinsics loaded ({source})")
-
         return collected_data, camera_matrix, dist_coeffs, source, metadata
 
     def _calculate_reprojection_error(self, corners, camera_matrix, dist_coeffs):
@@ -394,12 +408,7 @@ class HandEyeCalibrator:
         """
         # Step 0: Load data (包含 metadata)
         print("\nStep 0: Load calibration data")
-        collected_data, camera_matrix, dist_coeffs, source, data_metadata = \
-            self.load_calibration_data(data_dir, redetect_corners=redetect_corners)
-
-        if collected_data is None:
-            print("Failed to load data")
-            return None, None, None
+        
 
         # 确定标定模式: 优先级 mode参数 > metadata > config默认值
         if mode is not None:
@@ -411,10 +420,45 @@ class HandEyeCalibrator:
             calibration_mode = self.config.get('mode', 'eye_in_hand')
             print(f"  使用默认标定模式: {calibration_mode}")
 
+        # 根据确定的标定模式设置 chessboard 参数
+        if calibration_mode in self.file_config and 'chessboard' in self.file_config[calibration_mode]:
+            # New structure: chessboard is under each mode
+            self.board_size = tuple(self.file_config[calibration_mode]['chessboard']['board_size'])
+            self.chessboard_size_mm = self.file_config[calibration_mode]['chessboard']['square_size_mm']
+        elif 'chessboard' in self.file_config:
+            # Fallback to old structure (top-level chessboard)
+            self.board_size = tuple(self.file_config['chessboard']['board_size'])
+            self.chessboard_size_mm = self.file_config['chessboard']['square_size_mm']
+        else:
+            # Default values
+            self.board_size = (6, 4)
+            self.chessboard_size_mm = 50.0
+
+        # Update config with actual values
+        self.config['board_size'] = self.board_size
+        self.config['chessboard_size_mm'] = self.chessboard_size_mm
+
+        # Print calibration parameters
+        print("\n📋 标定配置参数:")
+        print(f"  模式: {calibration_mode}")
+        print(f"  棋盘格尺寸: {self.board_size}")
+        print(f"  方格大小: {self.chessboard_size_mm}mm")
+
         print("\n" + "="*60)
         print(f"Hand-Eye Calibration Computation ({calibration_mode.upper().replace('_', '-')})")
         print("="*60)
 
+
+         # Pass mode to load_calibration_data for selecting correct intrinsics
+        collected_data, camera_matrix, dist_coeffs, source, data_metadata = \
+            self.load_calibration_data(data_dir, redetect_corners=redetect_corners, calibration_mode=mode)
+
+        if collected_data is None:
+            print("Failed to load data")
+            return None, None, None
+        
+        
+        
         # Step 1: Data quality filtering
         print("\nStep 1: Data quality filtering")
         filtered_data, filter_report = DataQualityFilter.apply_all_filters(
@@ -424,6 +468,10 @@ class HandEyeCalibrator:
         if len(filtered_data) < self.config['min_frames']:
             print(f"\nInsufficient data after filtering: {len(filtered_data)} < {self.config['min_frames']}")
             return None, None, None
+        
+        
+       
+        
 
         # Step 2: Data preparation
         print("\nStep 2: Data preparation")
@@ -543,7 +591,7 @@ class HandEyeCalibrator:
         print("\nStep 6: Calibration result evaluation")
         quality_result = HandEyeCalibration.evaluate_calibration(
             R_optimized, t_optimized, R_g_inliers, t_g_inliers,
-            R_t_inliers, t_t_inliers, verbose=True
+            R_t_inliers, t_t_inliers, verbose=True, mode=calibration_mode, detail=True
         )
 
         # Print detailed calibration result (Legacy-style format)
@@ -566,104 +614,17 @@ class HandEyeCalibrator:
         max_t = quality_result['translation_error_mm']['max']
         max_r = quality_result['rotation_error_deg']['max']
 
-        print(f"  旋转重复性: 平均 {avg_r:.3f}° (最大 {max_r:.3f}°)")
         print(f"  平移重复性: 平均 {avg_t:.2f}mm (最大 {max_t:.2f}mm)")
+        print(f"  旋转重复性: 平均 {avg_r:.3f}° (最大 {max_r:.3f}°)")
+       
 
         # Quality assessment
-        if avg_t < 2.0 and avg_r < 0.3:
-            quality_emoji = "🌟 优秀"
-        elif avg_t < 5.0 and avg_r < 0.5:
-            quality_emoji = "👍 良好"
-        elif avg_t < 10.0 and avg_r < 1.0:
-            quality_emoji = "⚠️  可接受"
-        else:
-            quality_emoji = "❌ 需要改进"
+        quality_emoji = HandEyeCalibration.get_calibration_quality(avg_t, avg_r, mode=calibration_mode)
 
         print(f"  总体质量: {quality_emoji}")
 
         print(f"\n  使用数据: {len(best_inliers)}/{len(collected_data)} 帧")
         print(f"  算法: Optimized_{best_method}_with_RANSAC")
-
-        # Step 6.5: Detailed per-frame quality analysis
-        print("\n" + "="*60)
-        print("📊 最终标定质量分析")
-        print("="*60)
-
-        # Get original poses for deviation calculation (from inlier data only)
-        # Note: collected_data contains all original frames with pose info
-        inlier_original_data = [collected_data[i] for i in best_inliers]
-
-        # Initial reference position (assuming first pose in dataset)
-        if inlier_original_data and 'pose' in inlier_original_data[0]:
-            ref_pose = inlier_original_data[0]['pose']  # [x, y, z, roll, pitch, yaw] in meters and radians
-            ref_pos_mm = np.array(ref_pose[:3]) * 1000.0  # Convert to mm
-            ref_rpy_deg = np.rad2deg(ref_pose[3:])  # Convert to degrees
-        else:
-            # Fallback to default initial position if not available
-            ref_pos_mm = np.array([300.0, 0.0, 300.0])  # Default mm
-            ref_rpy_deg = np.array([180.0, 60.0, 180.0])  # Default degrees
-
-        # Calculate per-frame errors
-        for i, frame_id in enumerate(inlier_frame_ids):
-            # Predict target pose using calibration result: R_t_pred = R_g @ R_c2g @ R_t2c
-            R_pred = R_g_inliers[i] @ R_optimized @ R_t_inliers[i]
-            t_pred = R_g_inliers[i] @ (R_optimized @ t_t_inliers[i] + t_optimized) + t_g_inliers[i]
-
-            # Calculate pose deviation (if original pose available)
-            pose_deviation_str = ""
-            if i < len(inlier_original_data) and 'pose' in inlier_original_data[i]:
-                pose = inlier_original_data[i]['pose']  # [x, y, z, roll, pitch, yaw] in meters and radians
-
-                # Convert to mm and degrees
-                pos_mm = np.array(pose[:3]) * 1000.0
-                rpy_deg = np.rad2deg(pose[3:])
-
-                # Calculate deviation from reference
-                pos_dev = pos_mm - ref_pos_mm
-
-                # Angle difference handling wrap-around (-180 to +180)
-                def angle_diff(a, b):
-                    diff = a - b
-                    while diff > 180:
-                        diff -= 360
-                    while diff < -180:
-                        diff += 360
-                    return diff
-
-                rpy_dev = np.array([
-                    angle_diff(rpy_deg[0], ref_rpy_deg[0]),  # roll
-                    angle_diff(rpy_deg[1], ref_rpy_deg[1]),  # pitch
-                    angle_diff(rpy_deg[2], ref_rpy_deg[2])   # yaw
-                ])
-
-                pose_deviation_str = (
-                    f" | 位姿偏差: "
-                    f"ΔX={pos_dev[0]:+6.1f} ΔY={pos_dev[1]:+6.1f} ΔZ={pos_dev[2]:+6.1f}mm, "
-                    f"ΔR={rpy_dev[0]:+5.1f} ΔP={rpy_dev[1]:+5.1f} ΔY={rpy_dev[2]:+5.1f}°"
-                )
-
-            # Calculate reprojection consistency error (compare with first frame)
-            if i == 0:
-                R_ref = R_pred
-                t_ref = t_pred
-                print(f"✅ 帧 {frame_id:2d}: 旋转误差  0.000°  平移误差   0.000mm{pose_deviation_str}")
-            else:
-                # Rotation error
-                R_error = R_ref.T @ R_pred
-                angle_error = np.degrees(np.arccos(np.clip((np.trace(R_error) - 1) / 2, -1, 1)))
-
-                # Translation error
-                t_error = np.linalg.norm(t_pred - t_ref) * 1000.0  # Convert to mm
-
-                # Status indicator based on error magnitude
-                if t_error < 3.0:
-                    status = "✅"
-                elif t_error < 5.0:
-                    status = "⚠️"
-                else:
-                    status = "❌"
-
-                print(f"{status} 帧 {frame_id:2d}: 旋转误差 {angle_error:6.3f}°  平移误差 {t_error:7.3f}mm{pose_deviation_str}")
 
         # Step 7: Save results
         if save_results:

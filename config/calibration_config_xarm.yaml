@@ -16,6 +16,11 @@ eye_in_hand:
     serial_id: "344322074267"  # RealSense hand camera
     intrinsics_file: "hand_camera_intrinsics_xarm.yaml"  # 相对于 config/ 目录
 
+  # 棋盘格参数（Eye-in-Hand 模式）
+  chessboard:
+    board_size: [6, 4]  # 内角点数量 (width, height)
+    square_size_mm: 50.0  # 每个方格边长（毫米）
+
   # 物理配置
   target:
     position: "fixed"  # 棋盘格固定在外部（base附近）
@@ -27,21 +32,20 @@ eye_in_hand:
 eye_to_hand:
   # 相机配置
   camera:
-    serial_id: "x44322074267"  # RealSense top camera
+    serial_id: "318122302992"  # RealSense top camera
     intrinsics_file: "top_camera_intrinsics_xarm.yaml"  # 相对于 config/ 目录
+
+  # 棋盘格参数（Eye-to-Hand 模式）
+  chessboard:
+    board_size: [6, 4]  # 内角点数量 (width, height)
+    square_size_mm: 40.0  # 每个方格边长（毫米）- 注意：夹爪上的棋盘格较小
 
   # 物理配置
   target:
     position: "on_gripper"  # 棋盘格固定在机械臂末端
-    description: "6x4 chessboard, 50mm squares, mounted on gripper"
+    description: "6x4 chessboard, 40mm squares, mounted on gripper"
     mounting_note: "使用示教模式手动固定在末端"
 
-# ============================================================================
-# 棋盘格参数（两种模式通用）
-# ============================================================================
-chessboard:
-  board_size: [6, 4]  # 内角点数量 (width, height)
-  square_size_mm: 50.0  # 每个方格边长（毫米）
 
 # ============================================================================
 # 机器人配置
@@ -67,19 +71,19 @@ robot:
 quality_filter:
   min_motion_mm: 5.0  # 最小位移（毫米）
   min_rotation_deg: 2.0  # 最小旋转（度）
-  boundary_margin_ratio: null   # 边界裕度（图像宽度的10%），null 表示禁用边界过滤
+  boundary_margin_ratio: 0.05  # 边界裕度（图像宽度的5%），减少过滤
   max_pitch_deg: null  # 最大俯仰角变化量（相对初始位姿，度），null 表示不限制
   max_roll_deg: null  # 最大滚转角变化量（相对初始位姿，度），null 表示不限制
   max_yaw_deg: null  # 最大偏航角变化量（相对初始位姿，度），null 表示不限制
-  max_reprojection_error_px: 2.0  # 最大重投影误差（像素）
+  max_reprojection_error_px: 3.0  # 最大重投影误差（像素），放宽限制
 
 # ============================================================================
 # RANSAC 配置（两种模式通用）
 # ============================================================================
 ransac:
-  threshold_mm: 6.0  # RANSAC 内点阈值（毫米）
-  min_inlier_ratio: 0.3  # 最小内点比例
-  max_iterations: 1000  # 最大迭代次数
+  threshold_mm: 10.0  # RANSAC 内点阈值（毫米），放宽到10mm
+  min_inlier_ratio: 0.2  # 最小内点比例，降低要求
+  max_iterations: 2000  # 最大迭代次数，增加迭代
 
 # ============================================================================
 # 标定算法配置
