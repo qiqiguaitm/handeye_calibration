@@ -603,9 +603,9 @@ class HandEyeCalibrator:
 
         # Step 6: Evaluation
         print("\nStep 6: Calibration result evaluation")
-        quality_result = HandEyeCalibration.evaluate_calibration(
+        quality_result = HandEyeCalibration.evaluate_calibration_with_mode(
             R_optimized, t_optimized, R_g_inliers, t_g_inliers,
-            R_t_inliers, t_t_inliers, verbose=True, mode=calibration_mode, detail=True
+            R_t_inliers, t_t_inliers, mode=calibration_mode, verbose=True, detail=True
         )
 
         # Print detailed calibration result (Legacy-style format)
