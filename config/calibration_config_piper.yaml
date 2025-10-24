@@ -16,6 +16,11 @@ eye_in_hand:
     serial_id: "337122071190"  # RealSense hand camera
     intrinsics_file: "hand_camera_intrinsics_piper.yaml"  # 相对于 config/ 目录
 
+  # 棋盘格参数（Eye-in-Hand 模式）
+  chessboard:
+    board_size: [6, 4]  # 内角点数量 (width, height)
+    square_size_mm: 50.0  # 每个方格边长（毫米）
+
   # 物理配置
   target:
     position: "fixed"  # 棋盘格固定在外部（base附近）
@@ -30,18 +35,16 @@ eye_to_hand:
     serial_id: "318122302992"  # RealSense top camera
     intrinsics_file: "top_camera_intrinsics_piper.yaml"  # 相对于 config/ 目录
 
+  # 棋盘格参数（Eye-to-Hand 模式）
+  chessboard:
+    board_size: [6, 4]  # 内角点数量 (width, height)
+    square_size_mm: 50.0  # 每个方格边长（毫米）
+
   # 物理配置
   target:
     position: "on_gripper"  # 棋盘格固定在机械臂末端
     description: "6x4 chessboard, 50mm squares, mounted on gripper"
     mounting_note: "使用示教模式手动固定在末端"
-
-# ============================================================================
-# 棋盘格参数（两种模式通用）
-# ============================================================================
-chessboard:
-  board_size: [6, 4]  # 内角点数量 (width, height)
-  square_size_mm: 50.0  # 每个方格边长（毫米）
 
 # ============================================================================
 # 机器人配置

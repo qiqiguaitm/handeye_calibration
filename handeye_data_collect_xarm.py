@@ -34,13 +34,17 @@ config_data = None  # Store loaded config
 logger_ = logging.getLogger(__name__)
 logger_ = CommonLog(logger_)
 
-def load_config():
+def load_config(mode=None):
     """Load calibration configuration from YAML file
+
+    Args:
+        mode: Calibration mode ('eye_in_hand' or 'eye_to_hand').
+              If None, will try to load from global calibration_mode or config file.
 
     Returns:
         dict: Configuration data or None if failed
     """
-    global BOARD_SIZE, CHESSBOARD_SIZE_MM, tcp_offset, config_data
+    global BOARD_SIZE, CHESSBOARD_SIZE_MM, tcp_offset, config_data, calibration_mode
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
     config_file = os.path.join(script_dir, "config", "calibration_config_xarm.yaml")
@@ -53,9 +57,30 @@ def load_config():
         with open(config_file, 'r') as f:
             config_data = yaml.load(f, Loader=yaml.FullLoader)
 
-        # Load chessboard parameters
-        BOARD_SIZE = tuple(config_data['chessboard']['board_size'])
-        CHESSBOARD_SIZE_MM = config_data['chessboard']['square_size_mm']
+        # Determine which mode to use
+        if mode is None:
+            mode = calibration_mode  # Use global if set
+        if mode is None:
+            # Try to get from config file
+            mode = config_data.get('calibration_mode', 'eye_in_hand')
+
+        # Load chessboard parameters from mode-specific section
+        if mode in config_data and 'chessboard' in config_data[mode]:
+            # New structure: chessboard is under each mode
+            BOARD_SIZE = tuple(config_data[mode]['chessboard']['board_size'])
+            CHESSBOARD_SIZE_MM = config_data[mode]['chessboard']['square_size_mm']
+            logger_.info(f"从 {mode} 配置中加载棋盘格参数")
+        else:
+            # Fallback: try old structure (top-level chessboard)
+            if 'chessboard' in config_data:
+                BOARD_SIZE = tuple(config_data['chessboard']['board_size'])
+                CHESSBOARD_SIZE_MM = config_data['chessboard']['square_size_mm']
+                logger_.warning(f"使用旧版配置结构（顶级 chessboard）")
+            else:
+                # Default values
+                logger_.error(f"未找到 {mode} 模式的棋盘格配置")
+                BOARD_SIZE = (6, 4)
+                CHESSBOARD_SIZE_MM = 50.0
 
         # Load TCP offset if available
         if 'robot' in config_data and 'tcp_offset' in config_data['robot']:
@@ -195,11 +220,15 @@ def set_tcp_offset(xarm):
         # xArm API: set_tcp_offset(offset, is_radian=None, wait=True)
         # offset: list of 6 values [x, y, z, roll, pitch, yaw]
         # Units: mm, mm, mm, deg, deg, deg (when is_radian=False or None)
-        code = xarm.set_tcp_offset(tcp_offset, is_radian=False, wait=True)
+        # Note: wait=False to avoid blocking, set_tcp_offset doesn't need to wait
+        code = xarm.set_tcp_offset(tcp_offset, is_radian=False, wait=False)
 
         if code != 0:
             logger_.error(f"设置TCP偏移失败，错误码: {code}")
             return False
+
+        # Give the robot time to apply the TCP offset
+        time.sleep(0.5)
 
         logger_.info(f"✅ TCP偏移已设置: {tcp_offset}")
 
@@ -283,7 +312,7 @@ def save_calibration_metadata():
         'collection_mode': 'manual',
         'camera_id': camera_serial if camera_serial else 'unknown',
         'timestamp': timestamp,
-        'version': '3.4.1'  # 修复 TCP offset 设置后的模式问题
+        'version': '3.5.0'  # 改进 replay 模式错误处理和运动规划
     }
 
     metadata_file = os.path.join(data_path, "calibration_metadata.json")
@@ -463,8 +492,31 @@ def replay_trajectory(xarm, pipeline, trajectory_file, data_path):
     collected_frames_data = []
 
     # Motion config
-    stability_wait = 2.0  # seconds to wait for stability (increased for better settling)
+    stability_wait = 3.0  # seconds to wait for stability (increased for better settling)
     capture_speed = 20  # movement speed (slower for better accuracy)
+
+    # Configure robot for safer motion planning
+    #logger_.info("配置机械臂运动参数...")
+    #xarm.set_tcp_jerk(1000)  # 降低加加速度，使运动更平滑
+    #xarm.set_tcp_maxacc(500)  # 降低最大加速度
+    #logger_.info("运动参数配置完成")
+
+    # Check and clear any existing errors before starting
+    logger_.info("\n检查并清理机械臂状态...")
+    xarm.clean_error()
+    xarm.clean_warn()
+    time.sleep(0.5)
+
+    # Get and display current state
+    code, state = xarm.get_state()
+    logger_.info(f"当前状态码: {state}")
+
+    # Ensure robot is in motion state
+    if state != 0:
+        logger_.info("重新设置机械臂为运动状态...")
+        xarm.set_mode(0)
+        xarm.set_state(0)
+        time.sleep(0.5)
 
     try:
         for idx, pose_data in enumerate(poses):
@@ -485,14 +537,33 @@ def replay_trajectory(xarm, pipeline, trajectory_file, data_path):
             logger_.info(f"        Roll={roll_deg:.1f}° Pitch={pitch_deg:.1f}° Yaw={yaw_deg:.1f}°")
 
             # Move to target pose
+            # Try motion_type=1 first (linear with fallback), then motion_type=2 (pure joint) if fails
             code = xarm.set_position(
                 x=x_mm, y=y_mm, z=z_mm,
                 roll=roll_deg, pitch=pitch_deg, yaw=yaw_deg,
-                wait=True, speed=capture_speed
+                wait=True, speed=capture_speed,
+                motion_type=0
             )
-
+            
             if code != 0:
                 logger_.warning(f"  移动到目标位置失败，错误码: {code}")
+                if code == 9:
+                    logger_.warning(f"  错误原因: 目标位置超出工作空间范围")
+                    logger_.warning(f"  问题位置: X={x_mm:.1f} Y={y_mm:.1f} Z={z_mm:.1f}")
+                    logger_.warning(f"  姿态角度: Roll={roll_deg:.1f}° Pitch={pitch_deg:.1f}° Yaw={yaw_deg:.1f}°")
+
+                logger_.info(f"  清理机械臂错误状态...")
+                xarm.clean_error()
+                xarm.clean_warn()
+                time.sleep(0.5)
+
+                # Re-enable motion (error may put robot in stop state)
+                logger_.info(f"  重新激活机械臂运动状态...")
+                xarm.set_mode(0)  # Position control mode
+                xarm.set_state(0)  # Sport state
+                time.sleep(0.5)
+
+                logger_.info(f"  跳过当前pose，继续执行下一个")
                 continue
 
             # Wait for stability
@@ -503,6 +574,18 @@ def replay_trajectory(xarm, pipeline, trajectory_file, data_path):
             success, actual_pose = get_pos(xarm)
             if not success:
                 logger_.warning("  无法获取实际位置")
+                logger_.info(f"  清理机械臂错误状态...")
+                xarm.clean_error()
+                xarm.clean_warn()
+                time.sleep(0.5)
+
+                # Re-enable motion (error may put robot in stop state)
+                logger_.info(f"  重新激活机械臂运动状态...")
+                xarm.set_mode(0)  # Position control mode
+                xarm.set_state(0)  # Sport state
+                time.sleep(0.5)
+
+                logger_.info(f"  跳过当前pose，继续执行下一个")
                 continue
 
             # Check position error (convert actual_pose from m to mm for comparison)
@@ -643,6 +726,11 @@ if __name__ == '__main__':
         print("   - 相机固定在机械臂末端")
         print("   - 棋盘格固定在外部")
 
+    # Reload configuration with selected mode to get correct chessboard parameters
+    if load_config(calibration_mode) is None:
+        print("错误: 无法加载配置文件")
+        sys.exit(1)
+
     print("="*60)
 
     # Create calibration data directory with mode suffix
@@ -695,11 +783,7 @@ if __name__ == '__main__':
 
         logger_.info("机械臂初始化完成")
 
-        # Set TCP offset if configured
-        logger_.info("\n" + "="*60)
-        logger_.info("设置TCP偏移")
-        logger_.info("="*60)
-        set_tcp_offset(xarm)
+        
 
         # Re-enable motion after TCP offset (setting TCP may change robot state)
         logger_.info("\n重新确认机械臂状态...")
@@ -711,6 +795,12 @@ if __name__ == '__main__':
         if code != 0:
             logger_.warning(f"重新设置状态失败，错误码: {code}")
 
+        # Set TCP offset if configured
+        logger_.info("\n" + "="*60)
+        logger_.info("设置TCP偏移")
+        logger_.info("="*60)
+        set_tcp_offset(xarm)
+        
         logger_.info("✅ 机械臂准备就绪")
 
     except Exception as e:

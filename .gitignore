@@ -34,10 +34,21 @@ env/
 
 # Calibration data
 calibration_data/
-verified_data/
 *.png
 *.jpg
 *.jpeg
+
+# Ignore verified_data images but allow metadata files
+verified_data/**/*.png
+verified_data/**/*.jpg
+verified_data/**/*.jpeg
+
+# Allow verified_data metadata files
+!verified_data/**/poses.txt
+!verified_data/**/calibration_data.json
+!verified_data/**/calibration_metadata.json
+!verified_data/**/*.yaml
+!verified_data/**/*.json
 
 # Logs
 *.log
