@@ -37,7 +37,7 @@ class HandEyeDataCollector:
     Handles all hardware interactions for data collection
     """
 
-    VERSION = "3.5.1"  # 支持 Eye-in-Hand 和 Eye-to-Hand
+    VERSION = "3.5.3"  # 支持 Eye-in-Hand 和 Eye-to-Hand
 
     def __init__(self, config_dir=None, mode='eye_in_hand'):
         """Initialize data collector
