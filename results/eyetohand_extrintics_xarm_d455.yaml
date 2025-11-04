@@ -1,30 +1,27 @@
 camera_to_base:
   quaternion:
-    w: -0.15899410249016116
-    x: 0.8637939993771823
-    y: 0.4552801604132784
-    z: -0.14594785900238513
+    w: -0.053207445197338006
+    x: 0.1573578188538
+    y: 0.8540406129433192
+    z: -0.49297273359136884
   rotation_matrix:
-  - - 0.5428383959733586
-    - 0.740126843496052
-    - -0.39691149062938624
-  - - 0.8329462389058313
-    - -0.5348817018148151
-    - 0.1417819740175629
-  - - -0.10736404868344304
-    - -0.40757063265188476
-    - -0.9068401956519361
+  - - -0.9448149692422939
+    - 0.21632029671795694
+    - -0.2460288664436317
+  - - 0.3212395755433356
+    - 0.464432801562056
+    - -0.82529225607536
+  - - -0.06426359000570124
+    - -0.8587826861675049
+    - -0.5082937034220512
   translation:
-    x: 0.6289716578193518
-    y: -0.18075632468120295
-    z: 0.9850777909857649
+    x: 0.7288645955318136
+    y: 0.9203387018057007
+    z: 0.9261816216766886
 data_statistics:
-  frames_used: 55/65
+  frames_used: 52/71
   inlier_frame_ids:
   - 1
-  - 2
-  - 3
-  - 4
   - 7
   - 8
   - 9
@@ -32,25 +29,23 @@ data_statistics:
   - 11
   - 12
   - 13
-  - 16
   - 17
   - 18
   - 19
-  - 20
   - 21
+  - 22
   - 23
-  - 24
   - 25
   - 26
+  - 27
   - 28
   - 29
   - 30
-  - 31
   - 32
-  - 33
   - 34
   - 35
   - 37
+  - 38
   - 39
   - 40
   - 41
@@ -58,24 +53,26 @@ data_statistics:
   - 43
   - 44
   - 45
-  - 46
   - 47
-  - 48
   - 49
-  - 50
-  - 51
   - 53
+  - 54
   - 55
-  - 56
   - 57
   - 58
-  - 59
-  - 60
+  - 61
   - 62
+  - 63
   - 64
-  - 65
-  - 66
   - 67
+  - 68
+  - 69
+  - 70
+  - 71
+  - 72
+  - 73
+  - 74
+  - 75
 method: Optimized_Horaud_with_RANSAC
 mode: eye_to_hand
 quality:
@@ -97,35 +94,35 @@ quality:
       - -1
       - 0
     - !!binary |
-      9Z4VwekEBEA=
+      iQsUTwUlCkA=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      JUVQoL9v8T8=
+      68mO4jz98z8=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      5m8cRHso8T8=
+      o8b+Gr9V8T8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      C9tkxyYm4D8=
+      ljc3nZiJ5D8=
   translation_error_mm:
     max: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      gr3AweGmFEA=
+      C41yLuuqIUA=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      OwBJ67uBAUA=
+      eVNtvBk3BEA=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      XatUk8B/AEA=
+      jkPvAVnY+j8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      NbdfWU5V7z8=
-timestamp: '20251024_221132'
-version: 3.5.1
+      iXFqYUWr/j8=
+timestamp: '20251104_183120'
+version: 3.5.3

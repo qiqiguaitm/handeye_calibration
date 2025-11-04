@@ -407,10 +407,39 @@ class HandEyeCalibrator:
         Returns:
             tuple: (R_result, t_result, quality_result) or (None, None, None)
         """
-        # Step 0: Load data (包含 metadata)
-        print("\nStep 0: Load calibration data")
-        
-        # 先加载数据以获取metadata
+        # Step 0: Load board configuration FIRST (needed for corner redetection)
+        print("\nStep 0: Load calibration configuration")
+
+        # Load board_size from config based on calibration_mode
+        if calibration_mode not in self.file_config:
+            raise ValueError(f"❌ 配置错误：标定模式 '{calibration_mode}' 在配置文件中未找到")
+
+        if 'chessboard' not in self.file_config[calibration_mode]:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的棋盘格参数未配置，请在config中设置 {calibration_mode}.chessboard")
+
+        chessboard_config = self.file_config[calibration_mode]['chessboard']
+
+        if 'board_size' not in chessboard_config:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 board_size 未配置")
+        if 'square_size_mm' not in chessboard_config:
+            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 square_size_mm 未配置")
+
+        # Set board_size and chessboard_size_mm BEFORE loading data
+        self.board_size = tuple(chessboard_config['board_size'])
+        self.chessboard_size_mm = chessboard_config['square_size_mm']
+
+        # Update config with actual values
+        self.config['board_size'] = self.board_size
+        self.config['chessboard_size_mm'] = self.chessboard_size_mm
+
+        print(f"  模式: {calibration_mode}")
+        print(f"  棋盘格尺寸: {self.board_size}")
+        print(f"  方格大小: {self.chessboard_size_mm}mm")
+
+        # Now load data (with board_size already set for redetection)
+        print("\nStep 1: Load calibration data")
+
+        # 加载数据以获取metadata
         collected_data, camera_matrix, dist_coeffs, source, data_metadata = \
             self.load_calibration_data(data_dir, redetect_corners=redetect_corners, calibration_mode=calibration_mode)
 
@@ -440,41 +469,15 @@ class HandEyeCalibrator:
         
         if config_serial_id != metadata_camera_id:
             raise ValueError(f"❌ 相机不匹配：配置文件中的serial_id是'{config_serial_id}'，但数据metadata中的camera_id是'{metadata_camera_id}'，请确保使用相同的相机")
-        
-        # 根据确定的标定模式设置 chessboard 参数
-        if calibration_mode not in self.file_config:
-            raise ValueError(f"❌ 配置错误：标定模式 '{calibration_mode}' 在配置文件中未找到")
-        
-        if 'chessboard' not in self.file_config[calibration_mode]:
-            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的棋盘格参数未配置，请在config中设置 {calibration_mode}.chessboard")
-        
-        chessboard_config = self.file_config[calibration_mode]['chessboard']
-        
-        if 'board_size' not in chessboard_config:
-            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 board_size 未配置")
-        if 'square_size_mm' not in chessboard_config:
-            raise ValueError(f"❌ 配置错误：'{calibration_mode}' 模式的 square_size_mm 未配置")
-        
-        self.board_size = tuple(chessboard_config['board_size'])
-        self.chessboard_size_mm = chessboard_config['square_size_mm']
 
-        # Update config with actual values
-        self.config['board_size'] = self.board_size
-        self.config['chessboard_size_mm'] = self.chessboard_size_mm
-
-        # Print calibration parameters
-        print("\n📋 标定配置参数:")
-        print(f"  模式: {calibration_mode}")
-        print(f"  棋盘格尺寸: {self.board_size}")
-        print(f"  方格大小: {self.chessboard_size_mm}mm")
-
+        # Print header
         print("\n" + "="*60)
         print(f"Hand-Eye Calibration Computation ({calibration_mode.upper().replace('_', '-')})")
         print("="*60)
 
-        
-        # Step 1: Data quality filtering
-        print("\nStep 1: Data quality filtering")
+
+        # Step 2: Data quality filtering
+        print("\nStep 2: Data quality filtering")
         filtered_data, filter_report = DataQualityFilter.apply_all_filters(
             collected_data, config=self.config.get('quality_filter', {}), verbose=True
         )
@@ -482,13 +485,13 @@ class HandEyeCalibrator:
         if len(filtered_data) < self.config['min_frames']:
             print(f"\nInsufficient data after filtering: {len(filtered_data)} < {self.config['min_frames']}")
             return None, None, None
-        
-        
-       
-        
 
-        # Step 2: Data preparation
-        print("\nStep 2: Data preparation")
+
+
+
+
+        # Step 3: Data preparation
+        print("\nStep 3: Data preparation")
         R_g, t_g, R_t, t_t, frame_ids, reprojection_errors = \
             prepare_calibration_data(
                 filtered_data,
@@ -506,8 +509,8 @@ class HandEyeCalibrator:
         print(f"  {len(R_g)} valid poses")
         print(f"  Reprojection error: {np.mean(reprojection_errors):.2f}±{np.std(reprojection_errors):.2f}px")
 
-        # Step 2.5: Filter high reprojection error frames
-        print("\nStep 2.5: Filter high reprojection error frames")
+        # Step 4: Filter high reprojection error frames
+        print("\nStep 4: Filter high reprojection error frames")
 
         # 保存过滤前的数据用于对比
         original_frame_ids = frame_ids.copy()
@@ -541,8 +544,8 @@ class HandEyeCalibrator:
             print(f"\nInsufficient data after reprojection filtering: {len(R_g)} < {self.config['min_frames']}")
             return None, None, None
 
-        # Step 3: RANSAC filtering
-        print("\nStep 3: RANSAC geometric consistency filtering")
+        # Step 5: RANSAC filtering
+        print("\nStep 5: RANSAC geometric consistency filtering")
         print(f"  阈值: {self.config['ransac']['threshold_mm']}mm")
         best_inliers = RANSACFilter.ransac_filter_handeye(
             R_g, t_g, R_t, t_t, frame_ids,
@@ -578,8 +581,8 @@ class HandEyeCalibrator:
         t_t_inliers = [t_t[i] for i in best_inliers]
         inlier_frame_ids = [frame_ids[i] for i in best_inliers]
 
-        # Step 4: Multi-algorithm fusion
-        print("\nStep 4: Multi-algorithm fusion")
+        # Step 6: Multi-algorithm fusion
+        print("\nStep 6: Multi-algorithm fusion")
         R_result, t_result, best_method = HandEyeCalibration.multi_algorithm_fusion_with_mode(
             R_g_inliers, t_g_inliers, R_t_inliers, t_t_inliers,
             mode=calibration_mode,  # 传入标定模式
@@ -592,8 +595,8 @@ class HandEyeCalibrator:
 
         print(f"  Best algorithm: {best_method}")
 
-        # Step 5: Levenberg-Marquardt optimization
-        print("\nStep 5: Levenberg-Marquardt non-linear optimization")
+        # Step 7: Levenberg-Marquardt optimization
+        print("\nStep 7: Levenberg-Marquardt non-linear optimization")
         R_optimized, t_optimized = HandEyeCalibration.levenberg_marquardt_optimization_with_mode(
             R_result, t_result, R_g_inliers, t_g_inliers,
             R_t_inliers, t_t_inliers,
@@ -601,8 +604,8 @@ class HandEyeCalibrator:
             verbose=True
         )
 
-        # Step 6: Evaluation
-        print("\nStep 6: Calibration result evaluation")
+        # Step 8: Evaluation
+        print("\nStep 8: Calibration result evaluation")
         quality_result = HandEyeCalibration.evaluate_calibration_with_mode(
             R_optimized, t_optimized, R_g_inliers, t_g_inliers,
             R_t_inliers, t_t_inliers, mode=calibration_mode, verbose=True, detail=True
@@ -640,9 +643,9 @@ class HandEyeCalibrator:
         print(f"\n  使用数据: {len(best_inliers)}/{len(collected_data)} 帧")
         print(f"  算法: Optimized_{best_method}_with_RANSAC")
 
-        # Step 7: Save results
+        # Step 9: Save results
         if save_results:
-            print("\nStep 7: Save calibration results")
+            print("\nStep 9: Save calibration results")
             self._save_calibration_result(
                 R_optimized, t_optimized, data_dir,
                 {
