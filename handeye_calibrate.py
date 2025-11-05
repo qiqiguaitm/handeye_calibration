@@ -37,7 +37,7 @@ class HandEyeCalibrator:
     Pure computation - no hardware dependencies
     """
 
-    VERSION = "3.5.3"  # 支持 Eye-in-Hand 和 Eye-to-Hand
+    VERSION = "3.5.4"  # 支持 Eye-in-Hand 和 Eye-to-Hand
 
     def __init__(self, config=None):
         """Initialize calibrator
