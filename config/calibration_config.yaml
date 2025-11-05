@@ -15,6 +15,8 @@ eye_in_hand:
   camera:
     serial_id: "344322074267"  # RealSense hand camera
     intrinsics_file: "hand_camera_intrinsics_xarm.yaml"  # 相对于 config/ 目录
+    resolution: [1280, 720]  # 分辨率 [width, height]
+    fps: 30  # 帧率
 
   # 棋盘格参数（Eye-in-Hand 模式）
   chessboard:
@@ -34,6 +36,8 @@ eye_to_hand:
   camera:
     serial_id: "318122302992"  # RealSense top camera
     intrinsics_file: "top_camera_intrinsics_xarm_d455.yaml"  # 相对于 config/ 目录
+    resolution: [1280, 720]  # 分辨率 [width, height]
+    fps: 30  # 帧率
 
     #serial_id: "335522072402"  # RealSense top camera
     #intrinsics_file: "top_camera_intrinsics_xarm_d435.yaml"  # 相对于 config/ 目录
