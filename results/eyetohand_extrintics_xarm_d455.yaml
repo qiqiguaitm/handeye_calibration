@@ -1,23 +1,23 @@
 camera_to_base:
   quaternion:
-    w: -0.008478490864283563
-    x: -0.009109325207895053
-    y: 0.9455578609160841
-    z: -0.32521603134950233
+    w: -0.008713793775618437
+    x: -0.013533359025904265
+    y: 0.9451953069002206
+    z: -0.32610849391775976
   rotation_matrix:
-  - - -0.9996902707738422
-    - -0.02274147041736305
-    - -0.010108810186089837
-  - - -0.011712105814501796
-    - 0.7883031062950733
-    - -0.6151756165380171
-  - - 0.021958804555624278
-    - -0.6148666832157974
-    - -0.7883252962918876
+  - - -0.999481835983024
+    - -0.031266619204714664
+    - -0.007645787304849879
+  - - -0.01990005054680715
+    - 0.7869401967763324
+    - -0.6167082897820176
+  - - 0.025299160623193723
+    - -0.6162365821834451
+    - -0.7871546399854529
   translation:
-    x: 0.2861836867058761
-    y: 0.5889455512015734
-    z: 0.67010618893451
+    x: 0.2841978143734812
+    y: 0.5863733266716398
+    z: 0.6697952146289642
 data_statistics:
   frames_used: 45/62
   inlier_frame_ids:
@@ -87,35 +87,35 @@ quality:
       - -1
       - 0
     - !!binary |
-      XFGL3/vd+j8=
+      7VA6X5Sr+T8=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      pe3Y1IU97D8=
+      tsLSeAmy6j8=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      SSZ3uXT76T8=
+      qVOoSWbI5z8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      zVHHot5H2j8=
+      wwK+Tmwq2D8=
   translation_error_mm:
     max: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      K9/5BqygCUA=
+      NPglA8Q3B0A=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      gdPcQ3xH8j8=
+      gcedmtLs8D8=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      Ldes//5s8D8=
+      R0iJWezy7z8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      28khgFIV4D8=
-timestamp: '20251112_162607'
-version: 3.5.3
+      VZDDfctn3D8=
+timestamp: '20251112_175355'
+version: 3.5.4
