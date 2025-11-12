@@ -1,23 +1,23 @@
 camera_to_base:
   quaternion:
-    w: -0.008713793775618437
-    x: -0.013533359025904265
-    y: 0.9451953069002206
-    z: -0.32610849391775976
+    w: -0.006266751846578353
+    x: -0.009225832893634288
+    y: 0.945030489776924
+    z: -0.3267919601530905
   rotation_matrix:
-  - - -0.999481835983024
-    - -0.031266619204714664
-    - -0.007645787304849879
-  - - -0.01990005054680715
-    - 0.7869401967763324
-    - -0.6167082897820176
-  - - 0.025299160623193723
-    - -0.6162365821834451
-    - -0.7871546399854529
+  - - -0.9997512236574243
+    - -0.021533234995615217
+    - -0.005814687103053556
+  - - -0.013341538516669863
+    - 0.7862437975734402
+    - -0.6177723643279173
+  - - 0.017874399164475988
+    - -0.6175411003066277
+    - -0.7863354852011887
   translation:
-    x: 0.2841978143734812
-    y: 0.5863733266716398
-    z: 0.6697952146289642
+    x: 0.2880739338322649
+    y: 0.5876492045913441
+    z: 0.668470740591117
 data_statistics:
   frames_used: 45/62
   inlier_frame_ids:
@@ -66,7 +66,7 @@ data_statistics:
   - 57
   - 58
   - 60
-method: Optimized_Horaud_with_RANSAC
+method: Optimized_Park_with_RANSAC
 mode: eye_to_hand
 quality:
   quality: "\U0001F31F \u4F18\u79C0"
@@ -87,35 +87,35 @@ quality:
       - -1
       - 0
     - !!binary |
-      7VA6X5Sr+T8=
+      gH6yC/qyAkA=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      tsLSeAmy6j8=
+      c6Q4c0Az+z8=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      qVOoSWbI5z8=
+      BXgtPPAz/T8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      wwK+Tmwq2D8=
+      qNS4RyQ11z8=
   translation_error_mm:
     max: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      NPglA8Q3B0A=
+      jCS7dE+XEkA=
     mean: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      gcedmtLs8D8=
+      9cMV7nuu/j8=
     median: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      R0iJWezy7z8=
+      2IKU5ToW/D8=
     std: !!python/object/apply:numpy._core.multiarray.scalar
     - *id001
     - !!binary |
-      VZDDfctn3D8=
-timestamp: '20251112_175355'
+      K97oHuKn6D8=
+timestamp: '20251112_173930'
 version: 3.5.4
