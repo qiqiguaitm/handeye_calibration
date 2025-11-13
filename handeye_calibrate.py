@@ -685,7 +685,7 @@ class HandEyeCalibrator:
         if calibration_mode == 'eye_to_hand':
             result_key = 'camera_to_base'
         else:
-            result_key = 'camera_to_gripper'
+            result_key = 'camera_to_flan'
 
         result = {
             'version': self.VERSION,
