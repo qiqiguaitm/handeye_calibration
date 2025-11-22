@@ -715,6 +715,8 @@ class HandEyeCalibrator:
             }
         }
         print(result)
+
+        print("")
         print("")
         print("q = [%s,%s,%s,%s]"%tuple(quat))
         print("cfg.T_cam2flan = [%s,%s,%s]"%(float(t_cam2gripper[0][0]),float(t_cam2gripper[1][0]),float(t_cam2gripper[2][0])))
