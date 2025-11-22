@@ -625,6 +625,7 @@ class HandEyeCalibrator:
         print(f"  欧拉角 (度):    Rx={euler_angles[0]:.2f}°, Ry={euler_angles[1]:.2f}°, Rz={euler_angles[2]:.2f}°")
         print(f"  四元数 (xyzw):  x={quaternion[0]:.4f}, y={quaternion[1]:.4f}, z={quaternion[2]:.4f}, w={quaternion[3]:.4f}")
 
+
         print(f"\n📈 标定质量:")
         avg_t = quality_result['translation_error_mm']['mean']
         avg_r = quality_result['rotation_error_deg']['mean']
@@ -686,7 +687,8 @@ class HandEyeCalibrator:
             result_key = 'camera_to_base'
         else:
             result_key = 'camera_to_flan'
-
+	
+	
         result = {
             'version': self.VERSION,
             'timestamp': datetime.now().strftime("%Y%m%d_%H%M%S"),
@@ -712,6 +714,11 @@ class HandEyeCalibrator:
                 'inlier_frame_ids': metadata.get('inlier_frame_ids', [])
             }
         }
+        print(result)
+        print("")
+        print("q = [%s,%s,%s,%s]"%tuple(quat))
+        print("cfg.T_cam2flan = [%s,%s,%s]"%(float(t_cam2gripper[0][0]),float(t_cam2gripper[1][0]),float(t_cam2gripper[2][0])))
+        print("")
 
         # Generate timestamped filenames
         timestamp = result['timestamp']

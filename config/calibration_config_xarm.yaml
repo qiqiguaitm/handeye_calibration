@@ -18,13 +18,13 @@ eye_in_hand:
 
   # 棋盘格参数（Eye-in-Hand 模式）
   chessboard:
-    board_size: [6, 4]  # 内角点数量 (width, height)
-    square_size_mm: 50.0  # 每个方格边长（毫米）
+    board_size: [11, 8]  # 内角点数量 (width, height)
+    square_size_mm: 30.0  # 每个方格边长（毫米）
 
   # 物理配置
   target:
     position: "fixed"  # 棋盘格固定在外部（base附近）
-    description: "6x4 chessboard, 50mm squares"
+    description: "11x8 chessboard, 30mm squares"
 
 # ============================================================================
 # Eye-to-Hand 配置 (相机固定)
