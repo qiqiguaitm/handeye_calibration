@@ -1,4 +1,4 @@
-camera_to_flan:
+camera_to_gripper:
   quaternion:
     w: 0.6995599984140577
     x: 0.007424682679178564
