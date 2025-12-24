@@ -1,0 +1,94 @@
+camera_to_flan:
+  quaternion:
+    w: -0.6873330457876542
+    x: 0.16254301159988632
+    y: -0.15730907191754506
+    z: 0.6902223623157586
+  rotation_matrix:
+  - - -0.0023061070966113317
+    - 0.8976862965195584
+    - 0.4406290899510133
+  - - -0.999964257725402
+    - -0.005654280121414175
+    - 0.006285888003640754
+  - - 0.008134195826551794
+    - -0.44059884493415075
+    - 0.8976672505449595
+  translation:
+    x: -0.06950102249096521
+    y: 0.041842417281857724
+    z: 0.03983450828454096
+data_statistics:
+  frames_used: 18/66
+  inlier_frame_ids:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 13
+  - 15
+  - 17
+  - 18
+  - 19
+  - 20
+  - 22
+  - 35
+  - 43
+  - 44
+method: Optimized_Daniilidis_with_RANSAC
+mode: eye_in_hand
+quality:
+  quality: "\U0001F44D \u826F\u597D"
+  rotation_error_deg:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - &id001 !!python/object/apply:numpy.dtype
+      args:
+      - f8
+      - false
+      - true
+      state: !!python/tuple
+      - 3
+      - <
+      - null
+      - null
+      - null
+      - -1
+      - -1
+      - 0
+    - !!binary |
+      41bYJ75f6z8=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      ppwUa+RR1j8=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      fOPy08GTzz8=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      ufGDnBTVzj8=
+  translation_error_mm:
+    max: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      q7E9iEEAIEA=
+    mean: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      +LnZQydMDkA=
+    median: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      wWEWhWwJDEA=
+    std: !!python/object/apply:numpy.core.multiarray.scalar
+    - *id001
+    - !!binary |
+      vc4tqR8t/j8=
+timestamp: '20251224_215731'
+version: 3.5.4
