@@ -160,7 +160,7 @@ class HandEyeCalibration:
 
                 # 综合评分: 归一化后加权求和
                 # 平移: 5mm = 1.0, 旋转: 0.5° = 1.0
-                score = (avg_t_error / 5.0) + (avg_r_error / 0.5)
+                score = (avg_t_error / 5.0) * 0.7 + (avg_r_error / 0.5) * 0.3
 
                 if verbose:
                     print(f"   {method_name}: 平移={avg_t_error:.3f}mm, 旋转={avg_r_error:.3f}°, 综合={score:.3f}")
@@ -255,7 +255,7 @@ class HandEyeCalibration:
                 avg_r_error = eval_result['rotation_error_deg']['mean']
                 
                 # 综合评分
-                score = (avg_t_error / 5.0) + (avg_r_error / 0.5)
+                score = (avg_t_error / 5.0) * 0.7 + (avg_r_error / 0.5) * 0.3
                 
                 if verbose:
                     print(f"   {method_name}: 平移={avg_t_error:.3f}mm, 旋转={avg_r_error:.3f}°, 综合={score:.3f}")
@@ -383,8 +383,8 @@ class HandEyeCalibration:
                 t_error = np.linalg.norm(t_preds[i] - t_ref) * 1000
 
                 # 添加到残差向量（归一化：旋转权重 0.3，平移权重 0.7）
-                residuals.append(angle_error * 10.0 * 0.3)  # 旋转: 1° = 10mm
-                residuals.append(t_error * 0.7)               # 平移: mm
+                residuals.append(angle_error * 10.0 * 0.5)  # 旋转: 1° = 10mm
+                residuals.append(t_error * 0.5)               # 平移: mm
 
             return np.array(residuals)
 
@@ -522,8 +522,12 @@ class HandEyeCalibration:
                 t_error = np.linalg.norm(error_T[:3, 3]) * 1000
                 
                 # 添加到残差向量
-                residuals.append(angle_error)  # 旋转权重
-                residuals.append(t_error)       # 平移权重
+		# 添加到残差向量（归一化：旋转权重 0.3，平移权重 0.7）
+                residuals.append(angle_error * 10.0 * 1.0)  # 旋转: 1° = 10mm
+                residuals.append(t_error * 0.0)               # 平移: mm
+
+                #residuals.append(angle_error)  # 旋转权重
+                #residuals.append(t_error)       # 平移权重
             
             return np.array(residuals)
 

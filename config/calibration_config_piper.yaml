@@ -18,8 +18,8 @@ eye_in_hand:
 
   # 棋盘格参数（Eye-in-Hand 模式）
   chessboard:
-    board_size: [6, 4]  # 内角点数量 (width, height)
-    square_size_mm: 50.0  # 每个方格边长（毫米）
+    board_size: [11, 8]  # 内角点数量 (width, height)
+    square_size_mm: 20.0  # 每个方格边长（毫米）
 
   # 物理配置
   target:

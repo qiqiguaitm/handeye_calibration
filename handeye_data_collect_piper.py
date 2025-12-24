@@ -83,9 +83,9 @@ class HandEyeDataCollector:
         self.initial_position = [300, 0, 300, 180, 60, 180]  # Safe initial position
 
         # Chessboard parameters
-        self.board_size = (6, 4)  # 6x4 chessboard
+        self.board_size = (11, 8)  # 6x4 chessboard
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        self.chessboard_size_mm = 50.0  # 50mm per square
+        self.chessboard_size_mm = 20.0  # 50mm per square
 
         # Camera configuration (根据模式选择相机)
         if mode == 'eye_to_hand':
@@ -324,9 +324,6 @@ class HandEyeDataCollector:
                                 return np.asanyarray(color_frame.get_data())
                         except:
                             pass
-
-                return None
-
         return None
 
     def detect_chessboard(self, image, visualize=False):
@@ -474,7 +471,6 @@ class HandEyeDataCollector:
                 elif key == ord('q') or key == ord('Q'):  # Q: Quit
                     print("\n❌ 用户取消采集")
                     cv2.destroyAllWindows()
-                    return None
 
             cv2.destroyAllWindows()
 
