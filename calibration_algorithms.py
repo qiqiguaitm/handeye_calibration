@@ -255,7 +255,7 @@ class HandEyeCalibration:
                 avg_r_error = eval_result['rotation_error_deg']['mean']
                 
                 # 综合评分
-                score = (avg_t_error / 5.0) * 0.7 + (avg_r_error / 0.5) * 0.3
+                score = (avg_t_error / 5.0) * 1.0 + (avg_r_error / 0.5) * 0.0
                 
                 if verbose:
                     print(f"   {method_name}: 平移={avg_t_error:.3f}mm, 旋转={avg_r_error:.3f}°, 综合={score:.3f}")
