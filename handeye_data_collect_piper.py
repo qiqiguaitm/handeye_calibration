@@ -85,7 +85,7 @@ class HandEyeDataCollector:
         # Chessboard parameters
         self.board_size = (11, 8)  # 6x4 chessboard
         self.criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        self.chessboard_size_mm = 20.0  # 50mm per square
+        self.chessboard_size_mm = 30.0  # 50mm per square
 
         # Camera configuration (根据模式选择相机)
         if mode == 'eye_to_hand':
